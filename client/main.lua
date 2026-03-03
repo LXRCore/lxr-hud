@@ -1,3 +1,31 @@
+--[[
+    ██╗     ██╗  ██╗██████╗        ██╗  ██╗██╗   ██╗██████╗
+    ██║     ╚██╗██╔╝██╔══██╗       ██║  ██║██║   ██║██╔══██╗
+    ██║      ╚███╔╝ ██████╔╝█████╗ ███████║██║   ██║██║  ██║
+    ██║      ██╔██╗ ██╔══██╗╚════╝ ██╔══██║██║   ██║██║  ██║
+    ███████╗██╔╝ ██╗██║  ██║       ██║  ██║╚██████╔╝██████╔╝
+    ╚══════╝╚═╝  ╚═╝╚═╝  ╚═╝       ╚═╝  ╚═╝ ╚═════╝ ╚═════╝
+
+    🐺 LXR HUD System - Client Side
+
+    Handles HUD tick updates, NUI messaging, stress effects, food/water decay,
+    and native HUD suppression for RedM.
+
+    ═══════════════════════════════════════════════════════════════════════════════
+    SERVER INFORMATION
+    ═══════════════════════════════════════════════════════════════════════════════
+
+    Server:      The Land of Wolves 🐺
+    Developer:   iBoss21 / The Lux Empire
+    Website:     https://www.wolves.land
+    Discord:     https://discord.gg/CrKcWdfd3A
+    Store:       https://theluxempire.tebex.io
+
+    ═══════════════════════════════════════════════════════════════════════════════
+
+    © 2026 iBoss21 / The Lux Empire | wolves.land | All Rights Reserved
+]]
+
 local pid, isLoggedIn = PlayerId()
 local sid, cid = GetPlayerServerId(pid)
 local CurrentStatus = {}
@@ -14,7 +42,7 @@ local DefaultStatus = {
 
 local function GetShakeIntensity(stresslevel)
     local retval = 0.05
-    for k, v in pairs(Config.Intensity) do
+    for k, v in pairs(Config.Stress.intensityLevels) do
         if stresslevel >= v.min and stresslevel <= v.max then
             retval = v.intensity
             break
@@ -25,7 +53,7 @@ end
 
 local function GetEffectInterval(stresslevel)
     local retval = 60000
-    for k, v in pairs(Config.EffectInterval) do
+    for k, v in pairs(Config.Stress.effectIntervals) do
         if stresslevel >= v.min and stresslevel <= v.max then
             retval = v.timeout
             break
