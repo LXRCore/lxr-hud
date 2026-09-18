@@ -9,7 +9,13 @@ horse under you. It also owns the needs: they decay on the server, every core
 catalog item with `effects` restores them, and the values live in the core's
 replicated state bags so any resource can read them.
 
-![The HUD](docs/img/hud.png)
+![The HUD with the game's radar](docs/img/hud.png)
+
+| Radar off — the body row takes the corner | Your frame — the settings page (`/hud`) |
+|---|---|
+| ![Radar off](docs/img/hud-noradar.png) | ![Settings](docs/img/hud-settings.png) |
+
+The dashed square in the first shot stands where the game draws its radar; the HUD itself never draws a map.
 
 ## What it does
 
