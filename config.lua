@@ -1,266 +1,129 @@
 --[[
-    ██╗     ██╗  ██╗██████╗        ██╗  ██╗██╗   ██╗██████╗
-    ██║     ╚██╗██╔╝██╔══██╗       ██║  ██║██║   ██║██╔══██╗
-    ██║      ╚███╔╝ ██████╔╝█████╗ ███████║██║   ██║██║  ██║
-    ██║      ██╔██╗ ██╔══██╗╚════╝ ██╔══██║██║   ██║██║  ██║
-    ███████╗██╔╝ ██╗██║  ██║       ██║  ██║╚██████╔╝██████╔╝
-    ╚══════╝╚═╝  ╚═╝╚═╝  ╚═╝       ╚═╝  ╚═╝ ╚═════╝ ╚═════╝
+    ██╗     ██╗  ██╗██████╗       ██╗  ██╗██╗   ██╗██████╗
+    ██║     ╚██╗██╔╝██╔══██╗      ██║  ██║██║   ██║██╔══██╗
+    ██║      ╚███╔╝ ██████╔╝█████╗███████║██║   ██║██║  ██║
+    ██║      ██╔██╗ ██╔══██╗╚════╝██╔══██║██║   ██║██║  ██║
+    ███████╗██╔╝ ██╗██║  ██║      ██║  ██║╚██████╔╝██████╔╝
+    ╚══════╝╚═╝  ╚═╝╚═╝  ╚═╝      ╚═╝  ╚═╝ ╚═════╝ ╚═════╝
 
-    🐺 LXR HUD System - Configuration
+    LXR Core - HUD & Needs
 
-    Controls all aspects of the player HUD: health, hunger, thirst, stamina,
-    stress, temperature display, voice indicator, and alert thresholds.
+    The frame around the world: compass and place, date and hour, name and
+    trade, cash and bank, the body (health, stamina, hunger, thirst,
+    cleanliness, stress), the gun in hand and the horse under you. It also owns
+    the needs: they decay on the server, food and drink from the core catalog
+    restore them, and every value lives in the core's replicated state bags.
 
-    ═══════════════════════════════════════════════════════════════════════════════
-    SERVER INFORMATION
-    ═══════════════════════════════════════════════════════════════════════════════
+    Brand:       LXRCore — Lux Empire eXperience RedM Core
+    Product:     wolves.land / The Land of Wolves
+    Developer:   iBoss21 / LXRCore
+    Website:     https://www.lxrcore.com
+    Discord:     https://discord.gg/ZHMKVYyhBa (development)
+    GitHub:      https://github.com/LXRCore
 
-    Server:      The Land of Wolves 🐺
-    Developer:   iBoss21 / The Lux Empire
-    Website:     https://www.wolves.land
-    Discord:     https://discord.gg/CrKcWdfd3A
-    Store:       https://theluxempire.tebex.io
+    Version: 3.0.0
+    Performance Target: 0.02 ms (one 250 ms loop while the HUD is shown; nothing when hidden)
 
-    ═══════════════════════════════════════════════════════════════════════════════
-
-    Version: 2.0.1
-    Performance Target: Optimized for minimal server overhead and client FPS impact
-
-    Framework Support:
-    - LXR Core (Primary)
-    - RSG Core (Compatible)
-    - VORP Core (Compatible)
-    - RedEM:RP (Compatible)
-    - QBR Core (Compatible)
-    - QR Core (Compatible)
-    - Standalone (Compatible)
-
-    ═══════════════════════════════════════════════════════════════════════════════
-
-    © 2026 iBoss21 / The Lux Empire | wolves.land | All Rights Reserved
+    © 2026 iBoss21 / LXRCore | lxrcore.com | All Rights Reserved
 ]]
 
--- ═══════════════════════════════════════════════════════════════════════════════
--- 🐺 RESOURCE NAME PROTECTION - RUNTIME CHECK
--- ═══════════════════════════════════════════════════════════════════════════════
-
-local REQUIRED_RESOURCE_NAME = "lxr-hud"
-local currentResourceName = GetCurrentResourceName()
-
-if currentResourceName ~= REQUIRED_RESOURCE_NAME then
-    error(string.format([[
-
-        ═══════════════════════════════════════════════════════════════════════════════
-        ❌ CRITICAL ERROR: RESOURCE NAME MISMATCH ❌
-        ═══════════════════════════════════════════════════════════════════════════════
-
-        Expected: %s
-        Got: %s
-
-        This resource is branded and must maintain the correct name.
-        Rename the folder to "%s" to continue.
-
-        🐺 wolves.land - The Land of Wolves
-
-        ═══════════════════════════════════════════════════════════════════════════════
-
-    ]], REQUIRED_RESOURCE_NAME, currentResourceName, REQUIRED_RESOURCE_NAME))
-end
-
-Config = {}
+Config = Config or {}
 
 -- ████████████████████████████████████████████████████████████████████████████████
--- ████████████████████████ SERVER BRANDING & INFO ████████████████████████████████
+-- ████████████████████████ LANGUAGE ██████████████████████████████████████████████
 -- ████████████████████████████████████████████████████████████████████████████████
+Config.Lang = 'en'
 
-Config.ServerInfo = {
-    name      = 'The Land of Wolves 🐺',
-    developer = 'iBoss21 / The Lux Empire',
-    website   = 'https://www.wolves.land',
-    discord   = 'https://discord.gg/CrKcWdfd3A',
-    store     = 'https://theluxempire.tebex.io',
-    github    = 'https://github.com/iBoss21',
+-- ████████████████████████████████████████████████████████████████████████████████
+-- ████████████████████████ LAYOUT (what is on screen) ════════════════════════════
+-- ████████████████████████████████████████████████████████████████████████████████
+Config.Layout = {
+    compass    = true,   -- heading strip top-centre with the nearest place under it
+    clock      = true,   -- hour and date (the game clock, in the server year)
+    identity   = true,   -- name and trade top-right
+    money      = true,   -- cash and bank under the name
+    status     = { 'health', 'stamina', 'hunger', 'thirst', 'cleanliness', 'stress' }, -- bottom-left row, in this order
+    weapon     = true,   -- gun in hand + rounds bottom-right
+    mount      = true,   -- horse / wagon panel when mounted: speed, horse health and stamina
+    hideWhilePaused = true,
+    refreshMs  = 250,    -- the client loop; values are only sent to the page when they change
+    speedUnit  = 'mph',  -- 'mph' | 'kmh'
+    year       = 1899,   -- shown with the game date (match lxr-core Config.Server.year)
+}
+
+-- player-side settings (persisted per client with KVP; the /hud command opens the panel)
+Config.Settings = {
+    command   = 'hud',
+    defaults  = { opacity = 1.0, compass = true, status = true, weapon = true, mount = true, minimap = 'radar' }, -- minimap: 'radar' | 'off'
+}
+
+-- Places for the compass strip: nearest one within `radius` is shown
+Config.Places = {
+    { label = 'Valentine',    coords = vector3(-300.0, 800.0, 118.0),   radius = 260.0 },
+    { label = 'Saint Denis',  coords = vector3(2600.0, -1250.0, 50.0),  radius = 520.0 },
+    { label = 'Blackwater',   coords = vector3(-800.0, -1300.0, 43.0),  radius = 300.0 },
+    { label = 'Rhodes',       coords = vector3(1330.0, -1300.0, 77.0),  radius = 260.0 },
+    { label = 'Strawberry',   coords = vector3(-1790.0, -390.0, 160.0), radius = 220.0 },
+    { label = 'Annesburg',    coords = vector3(2930.0, 1360.0, 60.0),   radius = 260.0 },
+    { label = 'Van Horn',     coords = vector3(2970.0, 560.0, 45.0),    radius = 220.0 },
+    { label = 'Emerald Ranch',coords = vector3(1420.0, 300.0, 88.0),    radius = 240.0 },
+    { label = 'Armadillo',    coords = vector3(-3670.0, -2620.0, -13.0), radius = 260.0 },
+    { label = 'Tumbleweed',   coords = vector3(-5510.0, -2960.0, -1.0), radius = 260.0 },
+    { label = 'Lagras',       coords = vector3(2060.0, -600.0, 42.0),   radius = 200.0 },
+    { label = 'Colter',       coords = vector3(-1350.0, 2420.0, 308.0), radius = 240.0 },
 }
 
 -- ████████████████████████████████████████████████████████████████████████████████
--- ████████████████████████ FRAMEWORK CONFIGURATION ███████████████████████████████
+-- ████████████████████████ NEEDS (server-owned) ══════════════════════════════════
 -- ████████████████████████████████████████████████████████████████████████████████
+Config.Needs = {
+    tickMs      = 60000,              -- one tick a minute
+    decay       = { hunger = 0.45, thirst = 0.65, cleanliness = 0.12, stress = -0.35 }, -- per tick (stress falls on its own)
+    riding      = { hunger = 1.2, thirst = 1.5 },   -- multipliers while on a horse or running (client reports activity)
+    floors      = { hunger = 0, thirst = 0, cleanliness = 0, stress = 0 },
+    ceilings    = { hunger = 100, thirst = 100, cleanliness = 100, stress = 100 },
+    starve      = { damage = 4, everyMs = 30000 },  -- health lost while hunger or thirst sits at 0
+    warnAt      = { hunger = 20, thirst = 20 },     -- the HUD blinks the icon under this
+    dirtyAt     = 25,                                -- cleanliness under this: shopkeepers may refuse, dogs bark (other resources read it)
+}
 
---[[
-    Framework Priority (in order):
-    1. LXR-Core  (Primary)
-    2. RSG-Core  (Primary)
-    3. VORP Core (Supported)
-    4. RedEM:RP  (Optional - if detected)
-    5. QBR-Core  (Optional - if detected)
-    6. QR-Core   (Optional - if detected)
-    7. Standalone (Fallback)
-]]
-
-Config.Framework = 'auto' -- 'auto' | 'lxr-core' | 'rsg-core' | 'vorp_core' | 'redem_roleplay' | 'qbr-core' | 'qr-core' | 'standalone'
-
-Config.FrameworkSettings = {
-    ['lxr-core'] = {
-        resource = 'lxr-core',
-        notifications = 'ox_lib',
-        inventory = 'lxr-inventory',
-        events = {
-            server = 'lxr-core:server:%s',
-            client = 'lxr-core:client:%s',
-            callback = 'lxr-core:callback:%s',
-        }
+-- Every core catalog item with `effects` becomes usable here (eat / drink / smoke / heal …).
+Config.Consumables = {
+    register   = true,
+    defaultMs  = 2500,                -- when the item has no `use.time`
+    skipPrefix = { 'horse_' },        -- effects that belong to another resource (horse feed is lxr-horses')
+    anims = {                          -- by the catalog's `use.anim` key
+        eat   = { dict = 'mech_inventory@eating@multi_bite@sphere_d8-2_sandwich', anim = 'quick_left_hand', prop = 'p_bread01x' },
+        drink = { dict = 'mech_inventory@drinking@canteen', anim = 'drink_left_hand', prop = 'p_canteen01x' },
+        drink_bottle = { dict = 'mech_inventory@item@_templates@bottle@lid_small_l@unarmed@cork', anim = 'quick_left_hand', prop = 'p_bottlebeer01x' },
+        smoke = { dict = 'mech_inventory@smoking@cigar', anim = 'base', prop = 'p_cigar01x' },
+        heal  = { dict = 'mech_inventory@item@_templates@bottle@lid_small_l@unarmed@cork', anim = 'quick_left_hand', prop = 'p_bottleliquor01x' },
+        inject = { dict = 'mech_inventory@item@_templates@bottle@lid_small_l@unarmed@cork', anim = 'quick_left_hand' },
     },
-    ['rsg-core'] = {
-        resource = 'rsg-core',
-        notifications = 'ox_lib',
-        inventory = 'rsg-inventory',
-        events = {
-            server = 'RSGCore:Server:%s',
-            client = 'RSGCore:Client:%s',
-            callback = 'RSGCore:Callback:%s',
-        }
-    },
-    ['vorp_core'] = {
-        resource = 'vorp_core',
-        notifications = 'vorp',
-        inventory = 'vorp_inventory',
-        events = {
-            server = 'vorp:server:%s',
-            client = 'vorp:client:%s',
-        }
-    },
-    ['redem_roleplay'] = {
-        resource = 'redem_roleplay',
-        notifications = 'redem',
-        inventory = 'redem_inventory',
-        events = {
-            server = 'redem:%s:server',
-            client = 'redem:%s:client',
-        }
-    },
-    ['qbr-core'] = {
-        resource = 'qbr-core',
-        notifications = 'ox_lib',
-        inventory = 'qbr-inventory',
-        events = {
-            server = 'QBR:Server:%s',
-            client = 'QBR:Client:%s',
-        }
-    },
-    ['qr-core'] = {
-        resource = 'qr-core',
-        notifications = 'ox_lib',
-        inventory = 'qr-inventory',
-        events = {
-            server = 'QR:Server:%s',
-            client = 'QR:Client:%s',
-        }
-    },
-    ['standalone'] = {
-        notifications = 'print',
-        inventory = 'none',
-    }
+    stamina    = { core = true },     -- effects.stamina refills the stamina core on the client
 }
 
 -- ████████████████████████████████████████████████████████████████████████████████
--- ████████████████████████ GENERAL SETTINGS ██████████████████████████████████████
+-- ████████████████████████ STRESS ════════════════════════════════════════════════
 -- ████████████████████████████████████████████████████████████████████████████████
-
-Config.MinimumStress  = 50   -- Minimum stress level before screen-shake triggers
-Config.UpdateInterval = 10   -- Food/water decay interval in minutes
-
--- ████████████████████████████████████████████████████████████████████████████████
--- ████████████████████████ STRESS CONFIGURATION ██████████████████████████████████
--- ████████████████████████████████████████████████████████████████████████████████
-
 Config.Stress = {
-    -- Camera shake intensity per stress bracket
-    intensityLevels = {
-        [1] = {min = 50,  max = 60,  intensity = 0.12},
-        [2] = {min = 60,  max = 70,  intensity = 0.17},
-        [3] = {min = 70,  max = 80,  intensity = 0.22},
-        [4] = {min = 80,  max = 90,  intensity = 0.28},
-        [5] = {min = 90,  max = 100, intensity = 0.32},
+    -- camera shake per bracket while stress sits in it; `everyMs` between shakes
+    brackets = {
+        { min = 50, max = 65,  intensity = 0.10, everyMs = 50000 },
+        { min = 65, max = 80,  intensity = 0.18, everyMs = 35000 },
+        { min = 80, max = 95,  intensity = 0.26, everyMs = 22000 },
+        { min = 95, max = 101, intensity = 0.34, everyMs = 14000 },
     },
-    -- Milliseconds between stress effects per bracket
-    effectIntervals = {
-        [1] = {min = 50,  max = 60,  timeout = math.random(50000, 60000)},
-        [2] = {min = 60,  max = 70,  timeout = math.random(40000, 50000)},
-        [3] = {min = 70,  max = 80,  timeout = math.random(30000, 40000)},
-        [4] = {min = 80,  max = 90,  timeout = math.random(20000, 30000)},
-        [5] = {min = 90,  max = 100, timeout = math.random(15000, 20000)},
-    }
+    gainOnShot   = 1.0,  -- other resources add stress through exports; shooting adds this per shot when `trackShooting`
+    trackShooting = true,
 }
 
 -- ████████████████████████████████████████████████████████████████████████████████
--- ████████████████████████ HUD DISPLAY SETTINGS ██████████████████████████████████
+-- ████████████████████████ SECURITY ══════════════════════════════════════════════
 -- ████████████████████████████████████████████████████████████████████████████████
-
-Config.HUD = {
-    health = {
-        visible  = true,                          -- Health bar visibility
-        color    = {r = 255, g = 0,   b = 0},     -- Color of the health bar
-        position = "top-left",                    -- Position of the health bar
-    },
-    stamina = {
-        visible  = true,                          -- Stamina bar visibility
-        color    = {r = 0,   g = 255, b = 0},     -- Color of the stamina bar
-        position = "top-left",                    -- Position of the stamina bar
-    },
-    hunger = {
-        visible  = true,                          -- Hunger bar visibility
-        color    = {r = 255, g = 165, b = 0},     -- Color of the hunger bar
-        position = "top-left",                    -- Position of the hunger bar
-    },
-    thirst = {
-        visible  = true,                          -- Thirst bar visibility
-        color    = {r = 0,   g = 0,   b = 255},   -- Color of the thirst bar
-        position = "top-left",                    -- Position of the thirst bar
-    },
-    vehicle = {
-        visible      = true,                      -- Vehicle HUD visibility
-        speedometer  = true,                      -- Speedometer visibility
-        fuel         = true,                      -- Fuel gauge visibility
-        position     = "bottom-right",            -- Position of the vehicle HUD
-    }
+Config.Security = {
+    rateLimit     = { burst = 30, windowMs = 10000 },
+    maxEffect     = 100,    -- a single consumable may not move a need by more than this
 }
 
--- ████████████████████████████████████████████████████████████████████████████████
--- ████████████████████████ ALERTS CONFIGURATION ██████████████████████████████████
--- ████████████████████████████████████████████████████████████████████████████████
-
-Config.Alerts = {
-    thresholds = {
-        health = 20,  -- Health %  for low-health alert
-        hunger = 15,  -- Hunger %  for low-hunger alert
-        thirst = 15,  -- Thirst %  for low-thirst alert
-    },
-    alertSound   = true,   -- Enable/Disable alert sound
-    alertVisual  = true,   -- Enable/Disable visual alert
-}
-
--- ████████████████████████████████████████████████████████████████████████████████
--- ████████████████████████ VEHICLE SETTINGS ██████████████████████████████████████
--- ████████████████████████████████████████████████████████████████████████████████
-
-Config.Vehicle = {
-    speedUnit            = "mph",  -- Speed unit: "mph" | "kph"
-    fuelConsumptionRate  = 1.5,    -- Fuel consumption rate modifier
-}
-
--- ████████████████████████████████████████████████████████████████████████████████
--- ████████████████████████ ADVANCED HUD SETTINGS █████████████████████████████████
--- ████████████████████████████████████████████████████████████████████████████████
-
-Config.Advanced = {
-    customHUD = {
-        health  = {position = "top-left",     color = {255, 0,   0  }},
-        stamina = {position = "top-right",    color = {0,   255, 0  }},
-        hunger  = {position = "bottom-left",  color = {255, 165, 0  }},
-        thirst  = {position = "bottom-right", color = {0,   0,   255}},
-    },
-    customVehicleHUD = {
-        speedometer = {position = "bottom-right", color = {255, 255, 255}},
-        fuel        = {position = "bottom-left",  color = {255, 255, 0  }},
-    }
-}
+Config.Debug = { printBanner = true }

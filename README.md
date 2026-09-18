@@ -1,79 +1,68 @@
-# LXR-HUD
+<img src="https://raw.githubusercontent.com/LXRCore/.github/main/profile/lxrcore-logo.png" alt="LXRCore" width="72" align="left" style="margin-right:12px">
 
-LXR-HUD is a modern, customizable, and highly optimized heads-up display (HUD) designed for the LXRCore framework. It provides players with a clean and functional UI to monitor essential stats like health, stamina, hunger, thirst, and more in a visually appealing manner. Built specifically for RedM servers, LXR-HUD integrates seamlessly with LXRCore, ensuring smooth performance and easy customization.
+# lxr-hud — HUD & needs for LXRCore
 
-## Features
+The frame around the world: a compass strip with the nearest place, the hour
+and the date in the server year, name and trade, cash and bank, the body
+(health, stamina, food, water, cleanliness, nerves), the gun in hand and the
+horse under you. It also owns the needs: they decay on the server, every core
+catalog item with `effects` restores them, and the values live in the core's
+replicated state bags so any resource can read them.
 
-- **Fully Customizable**: Tailor the HUD layout, design, and elements to your server's theme and player needs.
-- **Status Tracking**: Displays real-time data for health, stamina, hunger, thirst, and other vital stats.
-- **Optimized Performance**: Designed with performance in mind, LXR-HUD minimizes resource usage while providing detailed stat monitoring.
-- **Configurable Alerts**: Set custom thresholds for low health, hunger, or thirst, providing players with visual and audio cues.
-- **Vehicle Integration**: Shows key vehicle stats like speed, fuel level, and damage when driving, creating a more immersive experience.
-- **Cross-Framework Compatibility**: While optimized for LXRCore, LXR-HUD can be adapted for other frameworks with minor adjustments.
-- **Drag and Drop**: Easily install and configure LXR-HUD without requiring complex setups.
+![The HUD](docs/img/hud.png)
 
-## Installation
+## What it does
 
-1. **Download the resource**:
-   - Clone or download the `lxr-hud` repository from [GitHub](https://github.com/LXRCore/lxr-hud).
+* **Compass** — a scrolling heading tape (cardinal points, 15° minors), the
+  heading in degrees and the nearest place from `Config.Places`.
+* **Clock & identity** — game hour, game date in `Config.Layout.year`,
+  character name, trade and grade, cash and bank.
+* **Body row** — six meters in the order of `Config.Layout.status`; food and
+  water blink under `Config.Needs.warnAt`; starving deals damage every
+  `starve.everyMs` while a need sits at zero.
+* **Weapon & mount** — the gun in hand with its rounds; speed (mph or km/h)
+  and the horse's health and stamina cores when mounted; wagons show speed.
+* **Needs on the server** — hunger, thirst and cleanliness fall per tick
+  (faster while riding or running), nerves fall on their own; `SetNeed`,
+  `AddNeed`, `AddStress`, `RemoveStress`, `GetNeed` exports for other resources.
+* **Consumables** — every catalog item with `effects` (food, drink, tonics,
+  tobacco, medicine) is registered as usable: animation and prop by the
+  catalog's `use.anim`, a cancellable progress bar through lxr-nui, charges
+  for refillables (canteen), then the effects land — needs on the server,
+  health / stamina / cores on the client. Horse feed stays with lxr-horses.
+* **Nerves** — camera shakes by bracket; shooting adds stress when enabled.
+* **Settings** — `/hud` opens a panel (opacity, compass, body row, weapon,
+  mount, radar) persisted per client; `/togglehud` hides everything.
+* **Themes** — LXR Night / LXR Morning from the core's `Config.UI.theme`.
+* **Cost** — one 250 ms loop while shown, diffed so the page only redraws
+  what changed; nothing runs while hidden.
 
-   ```bash
-   git clone https://github.com/LXRCore/lxr-hud.git
-   ```
+## Install
 
-2. **Add to your server configuration**:
-   - Add `lxr-hud` to your `server.cfg` to ensure it starts when your server launches.
+```cfg
+ensure lxr-core
+ensure lxr-nui
+ensure lxr-hud
+```
 
-   ```bash
-   ensure lxr-hud
-   ```
-
-3. **Configuration**:
-   - Open the `config.lua` file in the resource folder to customize HUD elements to your liking.
-
-4. **Restart your server**:
-   - After configuring the HUD, restart your server to apply the changes.
+No SQL: needs are metadata the core already persists.
 
 ## Configuration
 
-LXR-HUD comes with a fully customizable `config.lua` file that allows you to adjust the following:
+`config.lua` — `Config.Lang`, `Config.Layout`, `Config.Settings`,
+`Config.Places`, `Config.Needs`, `Config.Consumables`, `Config.Stress`,
+`Config.Security`.
 
-- **HUD Positioning**: Define where each element of the HUD appears on the screen.
-- **Color Themes**: Change the colors of health, stamina, hunger, and thirst bars to fit your server's theme.
-- **Visibility Settings**: Enable or disable specific HUD elements based on your needs (e.g., disable hunger/thirst for specific jobs).
-- **Vehicle HUD**: Customize the vehicle speedometer, fuel gauge, and damage indicators.
-- **Thresholds**: Adjust the alert thresholds for low health, hunger, thirst, etc.
+## API
 
-Example Configuration:
+| Name | Side | Purpose |
+|---|---|---|
+| `GetNeed(src, key)` / `SetNeed(src, key, value)` / `AddNeed(src, key, delta)` | server | hunger · thirst · cleanliness · stress |
+| `AddStress(src, n)` / `RemoveStress(src, n)` | server | nerves |
+| `lxr:needs:consumed` (src, item, effects) | server | emitted after a consumable landed |
+| `Hide(on)` / `IsShown()` / `GetSnapshot()` | client | other resources hide the frame or read what it shows |
+| `LocalPlayer.state.hunger / thirst / cleanliness / stress` | client | the core's replicated values |
 
-```lua
-Config = {}
-Config.HUD = {
-    health = { visible = true, color = { r = 255, g = 0, b = 0 }, position = "top-left" },
-    stamina = { visible = true, color = { r = 0, g = 255, b = 0 }, position = "top-left" },
-    hunger = { visible = true, color = { r = 255, g = 165, b = 0 }, position = "top-left" },
-    thirst = { visible = true, color = { r = 0, g = 0, b = 255 }, position = "top-left" },
-    vehicle = { visible = true, speedometer = true, fuel = true, position = "bottom-right" }
-}
-```
+## Licence
 
-## Keybindings
-
-The HUD is designed to be simple and intuitive, but you can configure additional keybindings for toggling certain elements like the vehicle HUD or stats display. All keybinding changes can be made within the `config.lua` file.
-
-## Requirements
-
-- **LXRCore**: LXR-HUD is developed for the LXRCore framework but can be adapted for other frameworks with slight modifications.
-- **RedM**: This HUD is intended for RedM servers running a roleplay environment.
-
-## Future Updates
-
-- **Modular HUD**: Upcoming features include a modular design where players can toggle different elements on or off according to personal preferences.
-- **Additional Stats**: Future updates will support more in-depth stats like fatigue, temperature, and sleep.
-- **Animations**: Adding smooth transitions and animations for health, stamina, and vehicle-related stats for enhanced UX.
-
-## Support
-
-For any questions, support, or feature requests, feel free to open an issue or a pull request on the [GitHub repository](https://github.com/LXRCore/lxr-hud).
-
-Join our [Discord community](https://discord.gg/5DGEv4kK7Q) for further assistance and discussions on LXRCore and LXR-HUD development.
+© 2026 iBoss21 / LXRCore — All Rights Reserved. See `LICENSE`.

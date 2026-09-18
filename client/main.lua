@@ -1,189 +1,264 @@
---[[
-    ██╗     ██╗  ██╗██████╗        ██╗  ██╗██╗   ██╗██████╗
-    ██║     ╚██╗██╔╝██╔══██╗       ██║  ██║██║   ██║██╔══██╗
-    ██║      ╚███╔╝ ██████╔╝█████╗ ███████║██║   ██║██║  ██║
-    ██║      ██╔██╗ ██╔══██╗╚════╝ ██╔══██║██║   ██║██║  ██║
-    ███████╗██╔╝ ██╗██║  ██║       ██║  ██║╚██████╔╝██████╔╝
-    ╚══════╝╚═╝  ╚═╝╚═╝  ╚═╝       ╚═╝  ╚═╝ ╚═════╝ ╚═════╝
+--[[ ═══════════════════════════════════════════════════════════════════════════
+     LXR-HUD — Client: reads the world, feeds the page, consumes, settings
+     ═══════════════════════════════════════════════════════════════════════════
+     One loop at Config.Layout.refreshMs while the HUD is visible; every value
+     is diffed and only changes reach the page. Needs come from the core's
+     state bags, money and job from PlayerData, everything else from natives.
+     ═══════════════════════════════════════════════════════════════════════════
+     © 2026 iBoss21 / LXRCore — All Rights Reserved
+     ═══════════════════════════════════════════════════════════════════════════ ]]
 
-    🐺 LXR HUD System - Client Side
+local LXRCore = exports['lxr-core']:GetCoreObject()
+local N = Citizen.InvokeNative
+local shown, hidden, settingsOpen = false, false, false
+local last = {}
+local settings = nil
+local consuming = false
+local MPH, KMH = 2.236936, 3.6
 
-    Handles HUD tick updates, NUI messaging, stress effects, food/water decay,
-    and native HUD suppression for RedM.
+-- ═══════════════════════════════════════════════════════════════════════════════
+-- ⚙️ SETTINGS (per client, KVP)
+-- ═══════════════════════════════════════════════════════════════════════════════
+local function loadSettings()
+    local raw = GetResourceKvpString('lxr-hud:settings')
+    local ok, t = pcall(json.decode, raw or '')
+    settings = {}
+    for k, v in pairs(Config.Settings.defaults) do settings[k] = v end
+    if ok and type(t) == 'table' then for k, v in pairs(t) do if settings[k] ~= nil then settings[k] = v end end end
+    return settings
+end
+local function saveSettings() SetResourceKvp('lxr-hud:settings', json.encode(settings)) end
+local function applyRadar() DisplayRadar(settings.minimap ~= 'off') end
 
-    ═══════════════════════════════════════════════════════════════════════════════
-    SERVER INFORMATION
-    ═══════════════════════════════════════════════════════════════════════════════
+-- ═══════════════════════════════════════════════════════════════════════════════
+-- 📡 SOURCES
+-- ═══════════════════════════════════════════════════════════════════════════════
+local function core(ped, idx) return N(0x36731AC041289BB1, ped, idx, Citizen.ResultAsInteger()) end -- GET_ATTRIBUTE_CORE_VALUE
+local function need(k) local v = LocalPlayer.state[k] return v ~= nil and tonumber(v) or ((LXRCore.PlayerData.metadata or {})[k]) end
+local function heading(ped) return (360 - GetEntityHeading(ped)) % 360 end
 
-    Server:      The Land of Wolves 🐺
-    Developer:   iBoss21 / The Lux Empire
-    Website:     https://www.wolves.land
-    Discord:     https://discord.gg/CrKcWdfd3A
-    Store:       https://theluxempire.tebex.io
-
-    ═══════════════════════════════════════════════════════════════════════════════
-
-    © 2026 iBoss21 / The Lux Empire | wolves.land | All Rights Reserved
-]]
-
-local pid, isLoggedIn = PlayerId()
-local sid, cid = GetPlayerServerId(pid)
-local CurrentStatus = {}
-local DefaultStatus = {
-    ['thirst'] = 100,
-    ['hunger'] = 100,
-    ['stress'] = 0,
-    ['armor'] = 0
-}
-
-----------------------------------------------------------------------------
----- FUNCTIONS
-----------------------------------------------------------------------------
-
-local function GetShakeIntensity(stresslevel)
-    local retval = 0.05
-    for k, v in pairs(Config.Stress.intensityLevels) do
-        if stresslevel >= v.min and stresslevel <= v.max then
-            retval = v.intensity
-            break
-        end
+local function nearestPlace(pos)
+    local best, bestD = nil, math.huge
+    for _, p in ipairs(Config.Places) do
+        local d = #(pos - p.coords)
+        if d < p.radius and d < bestD then best, bestD = p.label, d end
     end
-    return retval
+    return best
 end
 
-local function GetEffectInterval(stresslevel)
-    local retval = 60000
-    for k, v in pairs(Config.Stress.effectIntervals) do
-        if stresslevel >= v.min and stresslevel <= v.max then
-            retval = v.timeout
-            break
-        end
-    end
-    return retval
+local function clock()
+    local h, m = GetClockHours(), GetClockMinutes()
+    local day, month, year = GetClockDayOfMonth(), GetClockMonth() + 1, GetClockYear()
+    if Config.Layout.year then year = Config.Layout.year end
+    return { hour = h, minute = m, day = day, month = month, year = year }
 end
 
-local function UpdateStatus(data)
-    for k, v in pairs(data) do
-        local StatusAmount = CurrentStatus[k]
-        if StatusAmount + tonumber(v) < 0 then
-            CurrentStatus[k] = 0
-        elseif StatusAmount + tonumber(v) > 100 then
-            CurrentStatus[k] = 100
-        else
-            CurrentStatus[k] = StatusAmount + tonumber(v)
-        end
+local function weapon(ped)
+    local ok, hash = GetCurrentPedWeapon(ped, true)
+    if not ok or not hash or hash == joaat('WEAPON_UNARMED') then return nil end
+    local label
+    for name, def in pairs(LXRCore.Shared.Weapons or {}) do
+        if joaat(name) == hash then label = def.label break end
     end
-    SetResourceKvp(cid, json.encode(CurrentStatus))
+    local ammo = GetAmmoInPedWeapon(ped, hash)
+    return { label = label or ('0x%X'):format(hash), ammo = ammo }
 end
-exports("UpdateStatus", UpdateStatus)
 
-----------------------------------------------------------------------------
----- EVENTS & HANDLERS
-----------------------------------------------------------------------------
+local function mount(ped)
+    local veh = GetVehiclePedIsIn(ped, false)
+    if veh ~= 0 then
+        local u = Config.Layout.speedUnit == 'kmh' and KMH or MPH
+        return { kind = 'wagon', speed = math.floor(GetEntitySpeed(veh) * u + 0.5), unit = Config.Layout.speedUnit }
+    end
+    local horse = N(0xE7E11B8DCBED1058, ped, Citizen.ResultAsInteger()) -- GET_MOUNT
+    if horse and horse ~= 0 then
+        local u = Config.Layout.speedUnit == 'kmh' and KMH or MPH
+        return { kind = 'horse', speed = math.floor(GetEntitySpeed(horse) * u + 0.5), unit = Config.Layout.speedUnit, health = core(horse, 0), stamina = core(horse, 1) }
+    end
+    return nil
+end
 
-AddStateBagChangeHandler('isLoggedIn', ('player:%s'):format(sid), function(_, _, value)
-    isLoggedIn = value
-    if not value then return end
-    cid = exports['lxr-core']:GetPlayerData().citizenid
-    local Data = GetResourceKvpString(cid)
-    CurrentStatus = Data and json.decode(Data) or DefaultStatus
-end)
+local function snapshot()
+    local ped = PlayerPedId()
+    local pos = GetEntityCoords(ped)
+    local pd = LXRCore.PlayerData or {}
+    local job = LocalPlayer.state.job or pd.job or {}
+    local jobDef = LXRCore.Shared.Jobs and LXRCore.Shared.Jobs[job.name]
+    local grade = jobDef and jobDef.grades and jobDef.grades[tostring(job.grade or 0)]
+    return {
+        health = math.floor(GetEntityHealth(ped) / math.max(1, GetEntityMaxHealth(ped)) * 100 + 0.5),
+        stamina = core(ped, 1),
+        hunger = need('hunger') or 100, thirst = need('thirst') or 100, cleanliness = need('cleanliness') or 100, stress = need('stress') or 0,
+        heading = math.floor(heading(ped)), place = nearestPlace(pos),
+        clock = clock(),
+        name = pd.charinfo and (pd.charinfo.firstname .. ' ' .. pd.charinfo.lastname) or '',
+        job = { label = jobDef and jobDef.label or job.name or '', grade = grade and grade.name or '', onduty = job.onduty },
+        cash = pd.money and pd.money.cash or 0, bank = pd.money and pd.money.bank or 0,
+        weapon = weapon(ped), mount = mount(ped),
+        dead = pd.metadata and pd.metadata.isdead or false,
+    }
+end
 
-----------------------------------------------------------------------------
----- THREADS
-----------------------------------------------------------------------------
+local function diff(a, b)
+    if type(a) ~= type(b) then return true end
+    if type(a) ~= 'table' then return a ~= b end
+    for k, v in pairs(a) do if diff(v, b[k]) then return true end end
+    for k in pairs(b) do if a[k] == nil then return true end end
+    return false
+end
+
+-- ═══════════════════════════════════════════════════════════════════════════════
+-- 🔁 LOOP
+-- ═══════════════════════════════════════════════════════════════════════════════
+local function show(on)
+    if shown == on then return end
+    shown = on
+    SendNUIMessage({ action = on and 'show' or 'hide' })
+end
 
 CreateThread(function()
+    loadSettings()
     while true do
-        Wait(750)
-        if isLoggedIn then
-            local hidden = IsPauseMenuActive() or Citizen.InvokeNative(0x74F1D22EFA71FAB8) or Citizen.InvokeNative(0x25B7A0206BDFAC76, `MAP`)
+        Wait(Config.Layout.refreshMs)
+        local loggedIn = LocalPlayer.state.isLoggedIn == true
+        local visible = loggedIn and not hidden and not (Config.Layout.hideWhilePaused and IsPauseMenuActive())
+        show(visible)
+        if visible then
+            local s = snapshot()
+            local out = {}
+            for k, v in pairs(s) do if diff(v, last[k]) then out[k] = v end end
+            for k in pairs(last) do if s[k] == nil then out[k] = false end end
+            if next(out) then SendNUIMessage({ action = 'update', data = out }) last = s end
+            -- activity for the server's decay multipliers, once every few seconds
             local ped = PlayerPedId()
-            SendNUIMessage({
-                action = 'hudtick',
-                show = not hidden,
-                health = GetEntityHealth(ped) / 3, -- health in red dead is 300 so dividing by 3 makes it 100 here
-                thirst = CurrentStatus.thirst,
-                hunger = CurrentStatus.hunger,
-                stress = CurrentStatus.stress,
-                stamina = math.floor(Citizen.InvokeNative(0x775A1CA7893AA8B5, ped, Citizen.ResultAsFloat()) * 3),
-                temp = math.round((GetTemperatureAtCoords(GetEntityCoords(ped))* 9/5) + 32),
-				talking = MumbleIsPlayerTalking(pid),
-                voice = MumbleGetTalkerProximity()
-            })
+            local act = (s.mount and s.mount.kind == 'horse' and s.mount.speed > 8) and 'riding' or (IsPedRunning(ped) or IsPedSprinting(ped)) and 'running' or 'idle'
+            if act ~= last._act and (GetGameTimer() - (last._actAt or 0)) > 5000 then last._act = act last._actAt = GetGameTimer() TriggerServerEvent('lxr-hud:server:activity', act) end
+        end
+    end
+end)
+
+-- first paint: locale, layout, settings, brand
+local function init()
+    SendNUIMessage({ action = 'init', locale = Lang.bundle(), lang = Config.Lang, layout = Config.Layout, settings = settings or loadSettings(), brand = LXRCore.Brand, warnAt = Config.Needs.warnAt })
+    applyRadar()
+    last = {}
+end
+RegisterNetEvent('lxr:client:loaded', function() init() end)
+AddEventHandler('onResourceStart', function(res) if res == GetCurrentResourceName() then CreateThread(function() Wait(500) init() end) end end)
+
+-- ═══════════════════════════════════════════════════════════════════════════════
+-- 🍞 CONSUME / EFFECTS / STARVE
+-- ═══════════════════════════════════════════════════════════════════════════════
+RegisterNetEvent('lxr-hud:client:consume', function(c)
+    if consuming then return end
+    consuming = true
+    local ped = PlayerPedId()
+    local a = Config.Consumables.anims[c.anim] or Config.Consumables.anims.eat
+    local prop
+    if a.dict then
+        RequestAnimDict(a.dict)
+        local t = 0
+        while not HasAnimDictLoaded(a.dict) and t < 50 do Wait(10) t = t + 1 end
+        if HasAnimDictLoaded(a.dict) then TaskPlayAnim(ped, a.dict, a.anim, 2.0, 2.0, c.time or Config.Consumables.defaultMs, 31, 0.0, false, false, false) end
+    end
+    local model = c.prop and joaat(c.prop) or (a.prop and joaat(a.prop))
+    if model then
+        RequestModel(model)
+        local t = 0
+        while not HasModelLoaded(model) and t < 50 do Wait(10) t = t + 1 end
+        if HasModelLoaded(model) then
+            local pos = GetEntityCoords(ped)
+            prop = CreateObject(model, pos.x, pos.y, pos.z, true, true, false)
+            AttachEntityToEntity(prop, ped, GetEntityBoneIndexByName(ped, 'SKEL_L_Hand'), 0.05, 0.0, 0.0, 0.0, 0.0, 0.0, true, true, false, true, 1, true)
+        end
+    end
+    local done = true
+    if GetResourceState('lxr-nui') == 'started' then
+        local finished = nil
+        exports['lxr-nui']:Progress({ label = c.label, duration = c.time or Config.Consumables.defaultMs, canCancel = true }, function(f) finished = f end)
+        while finished == nil do Wait(50) end
+        done = finished
+    else
+        Wait(c.time or Config.Consumables.defaultMs)
+    end
+    if prop and DoesEntityExist(prop) then DeleteObject(prop) end
+    ClearPedTasks(ped)
+    consuming = false
+    if done then TriggerServerEvent('lxr-hud:server:consumed', c.name) end
+end)
+
+RegisterNetEvent('lxr-hud:client:effects', function(applied)
+    local ped = PlayerPedId()
+    if applied.health then
+        local max = GetEntityMaxHealth(ped)
+        SetEntityHealth(ped, math.min(max, GetEntityHealth(ped) + math.floor(max * applied.health / 100)))
+    end
+    local function bump(idx, v) N(0xC6258F41D86676E0, ped, idx, math.max(0, math.min(100, core(ped, idx) + v))) end -- _SET_ATTRIBUTE_CORE_VALUE
+    if applied.stamina then
+        if Config.Consumables.stamina.core then bump(1, applied.stamina) end
+        N(0x675680D089BFA21F, ped, math.min(100.0, N(0x775A1CA7893AA8B5, ped, Citizen.ResultAsFloat()) + applied.stamina + 0.0)) -- stamina bar
+    end
+    if applied.core_health then bump(0, applied.core_health) end
+    if applied.core_stamina then bump(1, applied.core_stamina) end
+end)
+
+RegisterNetEvent('lxr-hud:client:starve', function(damage)
+    local ped = PlayerPedId()
+    if IsEntityDead(ped) then return end
+    SetEntityHealth(ped, math.max(1, GetEntityHealth(ped) - (tonumber(damage) or 4)))
+    SendNUIMessage({ action = 'pulse', key = (need('hunger') or 1) <= 0 and 'hunger' or 'thirst' })
+end)
+
+-- stress from shooting
+CreateThread(function()
+    if not Config.Stress.trackShooting then return end
+    local lastShot = 0
+    while true do
+        Wait(250)
+        if shown and IsPedShooting(PlayerPedId()) and GetGameTimer() - lastShot > 900 then lastShot = GetGameTimer() TriggerServerEvent('lxr-hud:server:shot') end
+    end
+end)
+
+-- stress effects: camera shake by bracket
+CreateThread(function()
+    while true do
+        local stress = need('stress') or 0
+        local b
+        for _, br in ipairs(Config.Stress.brackets) do if stress >= br.min and stress < br.max then b = br end end
+        if b and shown then
+            ShakeGameplayCam('SMALL_EXPLOSION_SHAKE', b.intensity)
+            Wait(b.everyMs)
         else
-            SendNUIMessage({action = 'hudtick', show = false})
+            Wait(3000)
         end
     end
 end)
 
-CreateThread(function()
-    for i=0, 5 do
-        Citizen.InvokeNative(0xC116E6DF68DCE667, i, 2) --UitutorialSetRpgIconVisibility
-    end
-    Citizen.InvokeNative(0x4CC5F2FC1332577F, -1152968308) --`HUD_CTX_IN_FAST_TRAVEL_MENU`
-    Citizen.InvokeNative(0x4CC5F2FC1332577F, 1058184710) -- hide skill cards
-    Citizen.InvokeNative(0x4CC5F2FC1332577F, -66088566) -- HIDE MP MONEY
-    local active = false
-    while true do
-        local ped = PlayerPedId()
-        if not IsPedOnFoot(ped) then
-            if not active then
-                active = true
-                SetMinimapType(1)
-            end
-        elseif active then
-            active = false
-            SetMinimapType(0)
-        end
-        Wait(1000)
+-- ═══════════════════════════════════════════════════════════════════════════════
+-- 🪟 SETTINGS PANEL / TOGGLE
+-- ═══════════════════════════════════════════════════════════════════════════════
+local function openSettings()
+    if settingsOpen then return end
+    settingsOpen = true
+    SetNuiFocus(true, true)
+    SendNUIMessage({ action = 'settings', open = true, settings = settings or loadSettings(), brand = LXRCore.Brand })
+end
+RegisterNUICallback('settings', function(d, cb)
+    cb('ok')
+    if type(d.settings) == 'table' then
+        for k, v in pairs(d.settings) do if settings[k] ~= nil then settings[k] = v end end
+        saveSettings() applyRadar()
+        SendNUIMessage({ action = 'init', locale = Lang.bundle(), lang = Config.Lang, layout = Config.Layout, settings = settings, brand = LXRCore.Brand, warnAt = Config.Needs.warnAt })
+        last = {}
     end
 end)
+RegisterNUICallback('closeSettings', function(_, cb) cb('ok') settingsOpen = false SetNuiFocus(false, false) SendNUIMessage({ action = 'settings', open = false }) end)
 
-CreateThread(function()
-    local FoodUpdate, count = Config.UpdateInterval * (60 / 5), 0
-    while true do
-        if isLoggedIn then
-            if CurrentStatus['hunger'] <= 0 or CurrentStatus['thirst'] <= 0 then
-                local ped = PlayerPedId()
-                local currentHealth = GetEntityHealth(ped)
-                SetEntityHealth(ped, currentHealth - math.random(5, 10))
-            end
-            count += 1
-            if count >= FoodUpdate then
-                count = 0
-                UpdateStatus({thirst = -4.2, hunger = -4.6})
-            end
-        end
-        Wait(5000)
-    end
-end)
+RegisterCommand(Config.Settings.command, function() if LocalPlayer.state.isLoggedIn then openSettings() end end, false)
+RegisterCommand('togglehud', function() hidden = not hidden end, false)
+TriggerEvent('chat:addSuggestion', '/' .. Config.Settings.command, Lang:t('command.settings'))
+TriggerEvent('chat:addSuggestion', '/togglehud', Lang:t('command.toggle'))
 
-CreateThread(function()
-    while true do
-        local stress = CurrentStatus.stress or 0
-        local ped = PlayerPedId()
-        local interval = GetEffectInterval(stress)
-        if stress >= 100 then
-            local ShakeIntensity = GetShakeIntensity(stress)
-            local FallRepeat = math.random(2, 4)
-            local RagdollTimeout = (FallRepeat * 1750)
-            ShakeGameplayCam('SMALL_EXPLOSION_SHAKE', ShakeIntensity)
-            if not IsPedRagdoll(ped) and IsPedOnFoot(ped) and not IsPedSwimming(ped) then
-                SetPedToRagdollWithFall(ped, RagdollTimeout, RagdollTimeout, 1, GetEntityForwardVector(ped), 1.0, 0.0, 0.0, 0.0, 0.0, 0.0, 0.0)
-            end
-            Wait(500)
-            for i = 1, FallRepeat, 1 do
-                Wait(750)
-                DoScreenFadeOut(200)
-                Wait(1000)
-                DoScreenFadeIn(200)
-                ShakeGameplayCam('SMALL_EXPLOSION_SHAKE', ShakeIntensity)
-            end
-        elseif stress >= Config.MinimumStress then
-            local ShakeIntensity = GetShakeIntensity(stress)
-            ShakeGameplayCam('SMALL_EXPLOSION_SHAKE', ShakeIntensity)
-        end
-        Wait(interval)
-    end
-end)
+exports('Hide', function(on) hidden = on and true or false end)
+exports('IsShown', function() return shown end)
+exports('GetSnapshot', snapshot)
