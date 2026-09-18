@@ -93,7 +93,8 @@ local function snapshot()
         clock = clock(),
         name = pd.charinfo and (pd.charinfo.firstname .. ' ' .. pd.charinfo.lastname) or '',
         job = { label = jobDef and jobDef.label or job.name or '', grade = grade and grade.name or '', onduty = job.onduty },
-        cash = pd.money and pd.money.cash or 0, bank = pd.money and pd.money.bank or 0,
+        cash = pd.money and pd.money.cash or 0, bank = pd.money and pd.money.bank or 0, blood = pd.money and pd.money.bloodmoney or 0,
+        id = GetPlayerServerId(PlayerId()), talking = NetworkIsPlayerTalking(PlayerId()) == 1 or NetworkIsPlayerTalking(PlayerId()) == true,
         weapon = weapon(ped), mount = mount(ped),
         dead = pd.metadata and pd.metadata.isdead or false,
     }
@@ -139,7 +140,7 @@ end)
 
 -- first paint: locale, layout, settings, brand
 local function init()
-    SendNUIMessage({ action = 'init', locale = Lang.bundle(), lang = Config.Lang, layout = Config.Layout, settings = settings or loadSettings(), brand = LXRCore.Brand, warnAt = Config.Needs.warnAt })
+    SendNUIMessage({ action = 'init', locale = Lang.bundle(), lang = Config.Lang, layout = Config.Layout, settings = settings or loadSettings(), brand = LXRCore.Brand, warnAt = Config.Needs.warnAt, help = Config.Help })
     applyRadar()
     last = {}
 end
@@ -246,13 +247,15 @@ end
 RegisterNUICallback('settings', function(d, cb)
     cb('ok')
     if type(d.settings) == 'table' then
-        for k, v in pairs(d.settings) do if settings[k] ~= nil then settings[k] = v end end
+        for k, v in pairs(d.settings) do if Config.Settings.defaults[k] ~= nil then settings[k] = v end end
         saveSettings() applyRadar()
-        SendNUIMessage({ action = 'init', locale = Lang.bundle(), lang = Config.Lang, layout = Config.Layout, settings = settings, brand = LXRCore.Brand, warnAt = Config.Needs.warnAt })
+        SendNUIMessage({ action = 'init', locale = Lang.bundle(), lang = Config.Lang, layout = Config.Layout, settings = settings, brand = LXRCore.Brand, warnAt = Config.Needs.warnAt, help = Config.Help })
         last = {}
     end
 end)
 RegisterNUICallback('closeSettings', function(_, cb) cb('ok') settingsOpen = false SetNuiFocus(false, false) SendNUIMessage({ action = 'settings', open = false }) end)
+-- edit layout: the page keeps the cursor while elements are dragged; the HUD stays drawn under it
+RegisterNUICallback('edit', function(d, cb) cb('ok') settingsOpen = d.on == true SetNuiFocus(d.on == true, d.on == true) end)
 
 RegisterCommand(Config.Settings.command, function() if LocalPlayer.state.isLoggedIn then openSettings() end end, false)
 RegisterCommand('togglehud', function() hidden = not hidden end, false)

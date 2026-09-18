@@ -41,7 +41,7 @@ Config.Layout = {
     compass    = true,   -- heading strip top-centre with the nearest place under it
     clock      = true,   -- hour and date (the game clock, in the server year)
     identity   = true,   -- name and trade top-right
-    money      = true,   -- cash and bank under the name
+    money      = true,   -- cash, bank and blood money under the name
     status     = { 'health', 'stamina', 'hunger', 'thirst', 'cleanliness', 'stress' }, -- bottom-left row, in this order
     weapon     = true,   -- gun in hand + rounds bottom-right
     mount      = true,   -- horse / wagon panel when mounted: speed, horse health and stamina
@@ -54,7 +54,25 @@ Config.Layout = {
 -- player-side settings (persisted per client with KVP; the /hud command opens the panel)
 Config.Settings = {
     command   = 'hud',
-    defaults  = { opacity = 1.0, compass = true, status = true, weapon = true, mount = true, minimap = 'radar' }, -- minimap: 'radar' | 'off'
+    -- every key here can be changed by the player in /hud and is saved per client (KVP)
+    defaults  = {
+        opacity = 1.0, scale = 1.0,
+        compass = true, status = true, weapon = true, mount = true, clock = true, identity = true, money = true, help = true, voice = true,
+        minimap = 'radar',           -- 'radar' | 'off'
+        style = 'bars',              -- status row: 'bars' | 'rings'
+        preset = 'classic',          -- 'classic' | 'compact' | 'cinematic' — a starting layout; positions below override it
+        cinema = false, cinemaBar = 90,   -- letterbox bars, px
+        showId = true, showBank = true, showBlood = true, showJob = true,
+        positions = {},              -- element → { x, y } offsets from the preset, set in Edit layout
+    },
+}
+
+-- key hints along the bottom (the player can hide them); labels come from the locale (ui.help_<id>)
+Config.Help = {
+    { id = 'satchel', key = 'I' },
+    { id = 'census',  key = 'F9' },
+    { id = 'hud',     key = '/hud' },
+    { id = 'map',     key = 'M' },
 }
 
 -- Places for the compass strip: nearest one within `radius` is shown

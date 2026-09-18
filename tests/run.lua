@@ -74,10 +74,10 @@ print(('%d passed, %d failed'):format(passed, failed))
 if arg and arg[1] == '--mock' and arg[2] then
     Config.Lang = arg[3] or 'en'
     local msgs = {
-        { action = 'init', locale = Lang.bundle(), lang = Config.Lang, layout = Config.Layout, settings = Config.Settings.defaults, brand = { name = 'The Land of Wolves', theme = 'night' }, warnAt = Config.Needs.warnAt },
+        { action = 'init', locale = Lang.bundle(), lang = Config.Lang, layout = Config.Layout, settings = Config.Settings.defaults, brand = { name = 'The Land of Wolves', theme = 'night' }, warnAt = Config.Needs.warnAt, help = Config.Help },
         { action = 'show' },
         { action = 'update', data = { health = 82, stamina = 64, hunger = 18, thirst = 57, cleanliness = 71, stress = 33, heading = 292, place = 'Valentine',
-            clock = { hour = 17, minute = 42, day = 12, month = 5, year = 1899 }, name = 'Sadie Adler', job = { label = 'Deputy', grade = 'Deputy' }, cash = 12.5, bank = 140,
+            clock = { hour = 17, minute = 42, day = 12, month = 5, year = 1899 }, name = 'Sadie Adler', job = { label = 'Deputy', grade = 'Deputy' }, cash = 12.5, bank = 140, blood = 35, id = 4, talking = true, brandName = 'The Land of Wolves',
             weapon = { label = 'Cattleman Revolver', ammo = 31 }, mount = { kind = 'horse', speed = 14, unit = 'mph', health = 90, stamina = 66 } } },
     }
     local f = assert(io.open(arg[2], 'w'))

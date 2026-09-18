@@ -14,6 +14,8 @@ replicated state bags so any resource can read them.
 | Radar off — the body row takes the corner | Your frame — the settings page (`/hud`) |
 |---|---|
 | ![Radar off](docs/img/hud-noradar.png) | ![Settings](docs/img/hud-settings.png) |
+| **Rings** style, compact layout | **Edit layout** — drag every block |
+| ![Rings](docs/img/hud-rings.png) | ![Edit](docs/img/hud-edit.png) |
 
 The dashed square in the first shot stands where the game draws its radar; the HUD itself never draws a map.
 
@@ -42,6 +44,20 @@ The dashed square in the first shot stands where the game draws its radar; the H
 * **Themes** — LXR Night / LXR Morning from the core's `Config.UI.theme`.
 * **Cost** — one 250 ms loop while shown, diffed so the page only redraws
   what changed; nothing runs while hidden.
+
+## Your frame (`/hud`)
+
+Everything a player can change is saved per client:
+
+* **Layout** presets (classic, compact, cinematic) and **Edit layout** — drag any block where you want it; offsets are kept per block.
+* **Body row style** — bars or rings; **size** and **opacity** of the whole frame; **cinema bars** with a height.
+* **What is shown** — compass, clock, name, money, body row, gun, horse, key hints, voice light, server id, trade, bank, blood money.
+* **Map** — the game's radar on or off (the body row moves out of its corner automatically).
+* **Frame code** — export your layout as a code, paste a friend's.
+
+## Building the interface
+
+The frame is a Vite + React + TypeScript bundle: source in `ui/`, built output in `html/` (`cd ui && npm install && npm run build`). `style.css` uses kit tokens only; `tools/kit_check.py` guards it.
 
 ## Install
 
