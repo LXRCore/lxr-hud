@@ -64,6 +64,7 @@ Config.Settings = {
         cinema = false, cinemaBar = 90,   -- letterbox bars, px
         showId = true, showBank = true, showBlood = true, showJob = true,
         positions = {},              -- element → { x, y } offsets from the preset, set in Edit layout
+        grid = 8,                    -- snap step while editing, px (0 = free); arrow keys nudge by 1, Shift+arrows by 10
     },
 }
 

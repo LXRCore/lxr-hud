@@ -8,6 +8,7 @@ type Settings = {
   opacity: number; scale: number; compass: boolean; status: boolean; weapon: boolean; mount: boolean; clock: boolean; identity: boolean; money: boolean; help: boolean; voice: boolean;
   minimap: 'radar' | 'off'; style: 'bars' | 'rings'; preset: 'classic' | 'compact' | 'cinematic'; cinema: boolean; cinemaBar: number;
   showId: boolean; showBank: boolean; showBlood: boolean; showJob: boolean; positions: Record<string, { x: number; y: number }>;
+  grid: number;   // snap step in px while editing (0 = free)
 };
 type Layout = { compass: boolean; clock: boolean; identity: boolean; money: boolean; status: string[]; weapon: boolean; mount: boolean; speedUnit: string };
 type Snapshot = Record<string, any>;
@@ -47,6 +48,18 @@ function Tape({ heading }: { heading: number }) {
   );
 }
 
+
+/* status icons — simple strokes in the kit's bone, one per core */
+const ICON: Record<string, string> = {
+  health: 'M12 20s-7-4.4-7-10a4 4 0 0 1 7-2.6A4 4 0 0 1 19 10c0 5.6-7 10-7 10z',
+  stamina: 'M13 3L5 14h6l-1 7 8-11h-6l1-7z',
+  hunger: 'M7 3v8a2 2 0 0 0 2 2v8M7 3v6M11 3v6M17 3c-2 0-3 2-3 5v3h3v10',
+  thirst: 'M12 3s6 7 6 11a6 6 0 0 1-12 0c0-4 6-11 6-11z',
+  cleanliness: 'M12 3l1.8 5.2L19 10l-5.2 1.8L12 17l-1.8-5.2L5 10l5.2-1.8L12 3zM19 16l.8 2.2L22 19l-2.2.8L19 22l-.8-2.2L16 19l2.2-.8L19 16z',
+  stress: 'M3 12h3l2-6 3 12 3-9 2 5 2-2h3',
+};
+function Icon({ k }: { k: string }) { return <svg className="hud-ico" viewBox="0 0 24 24"><path d={ICON[k] || 'M12 4v16M4 12h16'} /></svg>; }
+
 function Ring({ v, cls }: { v: number; cls: string }) {
   const r = 20, c = 2 * Math.PI * r;
   return (
@@ -69,6 +82,7 @@ export function App() {
   const [code, setCode] = useState('');
   const [confirmReset, setConfirmReset] = useState(false);
   const drag = useRef<{ el: Element; sx: number; sy: number; ox: number; oy: number } | null>(null);
+  const lastEl = useRef<Element | null>(null);   // the piece last touched: arrow keys nudge it
   const t = (k: string) => L['ui.' + k] || k.replace(/_/g, ' ');
 
   useEffect(() => onMessage((m: Msg) => {
@@ -81,7 +95,10 @@ export function App() {
     else if (m.action === 'settings') { setOpen(!!m.open); if (m.open) { setDraft({ ...(m.settings || settings) }); setConfirmReset(false); } }
   }), [settings]);
   useEffect(() => {
-    const k = (e: KeyboardEvent) => { if (e.key === 'Escape') { if (editing) finishEdit(true); else if (open) post('closeSettings'); } };
+    const k = (e: KeyboardEvent) => {
+      if (e.key === 'Escape') { if (editing) finishEdit(true); else if (open) post('closeSettings'); return; }
+      if (editing && e.key.startsWith('Arrow')) { e.preventDefault(); const step = e.shiftKey ? 10 : 1; nudge(e.key === 'ArrowLeft' ? -step : e.key === 'ArrowRight' ? step : 0, e.key === 'ArrowUp' ? -step : e.key === 'ArrowDown' ? step : 0); }
+    };
     document.addEventListener('keydown', k); return () => document.removeEventListener('keydown', k);
   });
   useEffect(() => { document.body.classList.toggle('has-radar', !settings || settings.minimap !== 'off'); }, [settings]);
@@ -95,8 +112,10 @@ export function App() {
   const low = (key: string, v: number) => (warnAt[key] != null ? v <= warnAt[key] : key === 'health' && v <= 20);
 
   /* ── edit layout: drag blocks, save offsets ── */
-  const onDown = (el: Element) => (e: RPointerEvent) => { if (!editing || !draft) return; const p = draft.positions?.[el] || { x: 0, y: 0 }; drag.current = { el, sx: e.clientX, sy: e.clientY, ox: p.x, oy: p.y }; (e.target as HTMLElement).setPointerCapture?.(e.pointerId); };
-  const onMove = (e: RPointerEvent) => { const d = drag.current; if (!d || !draft) return; setDraft({ ...draft, positions: { ...draft.positions, [d.el]: { x: Math.round(d.ox + e.clientX - d.sx), y: Math.round(d.oy + e.clientY - d.sy) } } }); };
+  const onDown = (el: Element) => (e: RPointerEvent) => { if (!editing || !draft) return; const p = draft.positions?.[el] || { x: 0, y: 0 }; drag.current = { el, sx: e.clientX, sy: e.clientY, ox: p.x, oy: p.y }; lastEl.current = el; (e.target as HTMLElement).setPointerCapture?.(e.pointerId); };
+  const snap = (v: number) => { const g = draft?.grid || 0; return g > 0 ? Math.round(v / g) * g : Math.round(v); };
+  const onMove = (e: RPointerEvent) => { const d = drag.current; if (!d || !draft) return; setDraft({ ...draft, positions: { ...draft.positions, [d.el]: { x: snap(d.ox + e.clientX - d.sx), y: snap(d.oy + e.clientY - d.sy) } } }); };
+  const nudge = (dx: number, dy: number) => { const d = drag.current; if (!draft || !lastEl.current) return; const el = lastEl.current; const p = draft.positions?.[el] || { x: 0, y: 0 }; setDraft({ ...draft, positions: { ...draft.positions, [el]: { x: p.x + dx, y: p.y + dy } } }); void d; };
   const onUp = () => { drag.current = null; };
   const part = (el: Element) => ({ onPointerDown: (e: RPointerEvent) => { if (!editing) return; e.stopPropagation(); onDown(el)(e); }, style: posStyle(el), className: editing ? ' is-edit-item' : '' });
   const statDrag = (key: string) => part(('stat:' + key) as Element);
@@ -160,10 +179,10 @@ export function App() {
               {layout.status.map((key) => {
                 const v = stat(key); const isLow = low(key, v);
                 return cur.style === 'rings' ? (
-                  <div key={key} className={'hud-ringstat' + (isLow ? ' is-low' : '') + (pulse === key ? ' pulse' : '') + statDrag(key).className} style={statDrag(key).style} onPointerDown={statDrag(key).onPointerDown} title={t(key)}><Ring v={v} cls={'hud-ring--' + key} /><span className="hud-ringstat__val lxr-mono">{Math.round(v)}</span><span className="hud-ringstat__label lxr-mono">{t(key)}</span></div>
+                  <div key={key} className={'hud-ringstat' + (isLow ? ' is-low' : '') + (pulse === key ? ' pulse' : '') + statDrag(key).className} style={statDrag(key).style} onPointerDown={statDrag(key).onPointerDown} title={t(key)}><Ring v={v} cls={'hud-ring--' + key} /><span className="hud-ringstat__ico"><Icon k={key} /></span><span className="hud-ringstat__val lxr-mono">{Math.round(v)}</span><span className="hud-ringstat__label lxr-mono">{t(key)}</span></div>
                 ) : (
                   <div key={key} className={'hud-stat hud-stat--' + key + (isLow ? ' is-low' : '') + (pulse === key ? ' pulse' : '') + statDrag(key).className} style={statDrag(key).style} onPointerDown={statDrag(key).onPointerDown}>
-                    <div className="hud-stat__top"><span className="lxr-mono hud-stat__label">{t(key)}</span><span className="hud-stat__val">{Math.round(v)}</span></div>
+                    <div className="hud-stat__top"><Icon k={key} /><span className="lxr-mono hud-stat__label">{t(key)}</span><span className="hud-stat__val">{Math.round(v)}</span></div>
                     <div className="lxr-meter"><div className="lxr-meter-fill" style={{ width: v + '%' }} /></div>
                   </div>
                 );
@@ -185,6 +204,9 @@ export function App() {
           </div>
         </div>
 
+        {/* a frame where the game draws its radar (bottom-left) — a lumi-style border, ours */}
+        {cur.minimap !== 'off' && preset.brand !== 'none' && <div className={'hud-el hud-el--radar hud-a-radar' + (editing ? ' is-edit' : '')} style={posStyle('item:radar' as Element)} onPointerDown={onDown('item:radar' as Element)}><div className="hud-radarframe" /></div>}
+
         {/* key hints */}
         {cur.help && preset.help !== 'none' && help.length > 0 && (
           <div className={anchor('help')} style={posStyle('help')} onPointerDown={onDown('help')}>
@@ -192,9 +214,13 @@ export function App() {
           </div>
         )}
 
+        {editing && draft && draft.grid > 0 && <div className="hud-grid" style={{ backgroundSize: `${draft.grid}px ${draft.grid}px` }} />}
         {editing && (
           <div className="hud-editbar lxr-hit">
             <span className="lxr-mono lxr-t-ash">{t('edit_hint')}</span><span className="lxr-grow" />
+            <span className="lxr-mono lxr-t-smoke">{t('grid')}</span>
+            <div className="hud-seg">{[0, 8, 16, 32].map((g) => <button key={g} className="lxr-chip" aria-pressed={(draft?.grid || 0) === g} onClick={() => set('grid', g)}>{g === 0 ? t('grid_off') : g}</button>)}</div>
+            {lastEl.current && draft?.positions?.[lastEl.current] && <span className="lxr-mono lxr-t-smoke hud-editbar__pos">{lastEl.current.replace(/^(stat|item):/, '')} {draft.positions[lastEl.current].x} · {draft.positions[lastEl.current].y}</span>}
             <button className="lxr-btn lxr-btn-ghost lxr-btn-sm" onClick={() => setDraft((d) => (d ? { ...d, positions: {} } : d))}>{t('reset_positions')}</button>
             <button className="lxr-btn lxr-btn-ghost lxr-btn-sm" onClick={() => finishEdit(false)}>{t('cancel')}</button>
             <button className="lxr-btn lxr-btn-sm" onClick={() => finishEdit(true)}>{t('save')}</button>

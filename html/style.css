@@ -137,3 +137,16 @@ html, body { margin: 0; height: 100%; background: transparent; overflow: hidden;
 .lxr .hud-settings__foot { display: flex; align-items: center; gap: var(--lxr-s2); margin-top: var(--lxr-s3); }
 .lxr .hud.is-editing .is-edit-item { cursor: grab; outline: 1px dotted var(--lxr-bone-40); outline-offset: 2px; }
 .lxr .hud.is-editing .is-edit-item:active { cursor: grabbing; }
+/* the editing grid: kit hairlines, drawn under the pieces */
+.lxr .hud-grid { position: absolute; inset: 0; pointer-events: none; background-image: linear-gradient(to right, var(--lxr-edge) 1px, transparent 1px), linear-gradient(to bottom, var(--lxr-edge) 1px, transparent 1px); opacity: .7; }
+.lxr .hud-editbar { flex-wrap: wrap; }
+.lxr .hud-editbar__pos { min-width: 120px; text-align: right; }
+/* icons + the radar frame */
+.lxr .hud-ico { width: 14px; height: 14px; fill: none; stroke: var(--lxr-bone); stroke-width: 1.8; stroke-linecap: round; stroke-linejoin: round; flex: none; }
+.lxr .hud-stat__top { gap: 6px; } .lxr .hud-stat__top .hud-stat__label { flex: 1; }
+.lxr .hud-stat--health .hud-ico { stroke: var(--lxr-blood-lit); }
+.lxr .hud-stat.is-low .hud-ico { stroke: var(--lxr-blood-lit); }
+.lxr .hud-ringstat__ico { position: absolute; top: 8px; } .lxr .hud-ringstat__ico .hud-ico { width: 12px; height: 12px; stroke: var(--lxr-ash); }
+.lxr .hud-ringstat__val { top: 22px; }
+.lxr .hud-a-radar { left: 28px; bottom: 24px; }
+.lxr .hud-radarframe { width: 306px; height: 306px; border: var(--lxr-hairline) solid var(--lxr-bone-26); border-radius: var(--lxr-radius); box-shadow: 0 0 0 1px var(--lxr-void); }

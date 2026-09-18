@@ -49,7 +49,8 @@ The dashed square in the first shot stands where the game draws its radar; the H
 
 Everything a player can change is saved per client:
 
-* **Layout** presets (classic, compact, cinematic) and **Edit layout** — drag a whole block or any single piece of it (a bar, a ring, the clock, the money, the gun panel, a key hint) where you want it; offsets are kept per piece.
+* **Layout** presets (classic, compact, cinematic) and **Edit layout** — drag a whole block or any single piece of it (a bar, a ring, the clock, the money, the gun panel, a key hint, the radar frame) where you want it, on a snapping grid (free / 8 / 16 / 32 px); arrow keys nudge the last piece by 1, Shift+arrows by 10; offsets are kept per piece.
+* **Body row** — every core has its icon; bars or rings.
 * **Body row style** — bars or rings; **size** and **opacity** of the whole frame; **cinema bars** with a height.
 * **What is shown** — compass, clock, name, money, body row, gun, horse, key hints, voice light, server id, trade, bank, blood money.
 * **Map** — the game's radar on or off (the body row moves out of its corner automatically).
