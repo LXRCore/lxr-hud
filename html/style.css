@@ -12,7 +12,7 @@ html, body { margin: 0; height: 100%; background: transparent; overflow: hidden;
 
 /* compass */
 .lxr .hud-compass { position: absolute; top: 22px; left: 50%; transform: translateX(-50%); width: 520px; display: flex; flex-direction: column; align-items: center; gap: 6px; }
-.lxr .hud-compass__strip { position: relative; width: 100%; height: 26px; overflow: hidden; -webkit-mask-image: linear-gradient(90deg, transparent, #000 15%, #000 85%, transparent); mask-image: linear-gradient(90deg, transparent, #000 15%, #000 85%, transparent); }
+.lxr .hud-compass__strip { position: relative; width: 100%; height: 26px; overflow: hidden; -webkit-mask-image: linear-gradient(90deg, transparent, var(--lxr-bone) 15%, var(--lxr-bone) 85%, transparent); mask-image: linear-gradient(90deg, transparent, var(--lxr-bone) 15%, var(--lxr-bone) 85%, transparent); }
 .lxr .hud-compass__tape { position: absolute; top: 0; left: 50%; height: 100%; display: flex; will-change: transform; }
 .lxr .hud-tick { position: relative; width: 12px; height: 100%; flex: 0 0 auto; }
 .lxr .hud-tick::before { content: ''; position: absolute; left: 50%; bottom: 0; width: 1px; height: 6px; background: var(--lxr-bone-40); }
