@@ -37,6 +37,8 @@ html, body { margin: 0; height: 100%; background: transparent; overflow: hidden;
 
 /* status row */
 .lxr .hud-status { position: absolute; left: 32px; bottom: 28px; display: flex; gap: var(--lxr-s2); align-items: flex-end; }
+.lxr.has-radar .hud-status { left: 360px; }   /* clear of the game's radar (bottom-left, ~330 px at 1080p) */
+.lxr .hud-brand img { border-radius: 50%; }
 .lxr .hud-stat { display: flex; flex-direction: column; gap: 5px; width: 110px; padding: 8px 10px; background: var(--lxr-panel-solid); border: var(--lxr-hairline) solid var(--lxr-edge); border-radius: var(--lxr-radius); }
 .lxr .hud-stat--health { width: 170px; }
 .lxr .hud-stat__top { display: flex; justify-content: space-between; align-items: center; }

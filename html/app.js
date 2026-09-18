@@ -57,6 +57,7 @@
     $('identity').classList.toggle('lxr-hidden', !(layout && layout.identity));
     $('money').classList.toggle('lxr-hidden', !(layout && layout.money));
     $('clock-row').classList.toggle('lxr-hidden', !(layout && layout.clock));
+    document.body.classList.toggle('has-radar', settings.minimap !== 'off');   // the game's radar owns the bottom-left corner
   }
   function renderSettingsForm() {
     document.querySelectorAll('#settings [data-s]').forEach(inp => { if (inp.type === 'checkbox') inp.checked = settings[inp.dataset.s] !== false; else inp.value = settings[inp.dataset.s]; });
