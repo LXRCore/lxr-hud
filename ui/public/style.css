@@ -135,3 +135,5 @@ html, body { margin: 0; height: 100%; background: transparent; overflow: hidden;
 .lxr .hud-code { display: flex; gap: var(--lxr-s2); align-items: center; }
 .lxr .hud-code .lxr-input { flex: 1; font-family: var(--lxr-font-code); font-size: var(--lxr-text-micro); }
 .lxr .hud-settings__foot { display: flex; align-items: center; gap: var(--lxr-s2); margin-top: var(--lxr-s3); }
+.lxr .hud.is-editing .is-edit-item { cursor: grab; outline: 1px dotted var(--lxr-bone-40); outline-offset: 2px; }
+.lxr .hud.is-editing .is-edit-item:active { cursor: grabbing; }

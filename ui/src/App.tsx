@@ -17,7 +17,7 @@ const MONTHS = ['jan', 'feb', 'mar', 'apr', 'may', 'jun', 'jul', 'aug', 'sep', '
 const CARD: Record<number, string> = { 0: 'N', 45: 'NE', 90: 'E', 135: 'SE', 180: 'S', 225: 'SW', 270: 'W', 315: 'NW' };
 const TICK = 12; // px per 5°
 const ELEMENTS = ['brand', 'compass', 'right', 'status', 'bottomright', 'help'] as const;
-type Element = typeof ELEMENTS[number];
+type Element = typeof ELEMENTS[number] | `stat:${string}` | `item:${string}`;   // stat:<key> / item:<name> — every bar, ring, chip and panel can be dragged on its own
 const fmt = (n: number) => { n = Number(n || 0); return n.toLocaleString('en-US', { minimumFractionDigits: Number.isInteger(n) ? 0 : 2, maximumFractionDigits: 2 }); };
 const clamp = (v: number, a: number, b: number) => Math.max(a, Math.min(b, v));
 
@@ -90,7 +90,7 @@ export function App() {
   if (!layout || !cur) return null;
   const preset = PRESETS[cur.preset] || PRESETS.classic;
   const posStyle = (el: Element) => { const p = cur.positions?.[el]; return p ? { transform: `translate(${p.x}px, ${p.y}px)` } : undefined; };
-  const anchor = (el: Element) => 'hud-el hud-el--' + el + ' hud-a-' + preset[el] + (editing ? ' is-edit' : '');
+  const anchor = (el: typeof ELEMENTS[number]) => 'hud-el hud-el--' + el + ' hud-a-' + preset[el] + (editing ? ' is-edit' : '');
   const stat = (key: string) => clamp(Number(S[key] ?? 100), 0, 100);
   const low = (key: string, v: number) => (warnAt[key] != null ? v <= warnAt[key] : key === 'health' && v <= 20);
 
@@ -98,6 +98,8 @@ export function App() {
   const onDown = (el: Element) => (e: RPointerEvent) => { if (!editing || !draft) return; const p = draft.positions?.[el] || { x: 0, y: 0 }; drag.current = { el, sx: e.clientX, sy: e.clientY, ox: p.x, oy: p.y }; (e.target as HTMLElement).setPointerCapture?.(e.pointerId); };
   const onMove = (e: RPointerEvent) => { const d = drag.current; if (!d || !draft) return; setDraft({ ...draft, positions: { ...draft.positions, [d.el]: { x: Math.round(d.ox + e.clientX - d.sx), y: Math.round(d.oy + e.clientY - d.sy) } } }); };
   const onUp = () => { drag.current = null; };
+  const part = (el: Element) => ({ onPointerDown: (e: RPointerEvent) => { if (!editing) return; e.stopPropagation(); onDown(el)(e); }, style: posStyle(el), className: editing ? ' is-edit-item' : '' });
+  const statDrag = (key: string) => part(('stat:' + key) as Element);
   const startEdit = () => { setEditing(true); setOpen(false); post('edit', { on: true }); };
   const finishEdit = (save: boolean) => { setEditing(false); post('edit', { on: false }); if (save && draft) { setSettings(draft); post('settings', { settings: draft }); } post('closeSettings'); };
 
@@ -133,16 +135,16 @@ export function App() {
         {/* clock · identity · money */}
         <div className={anchor('right')} style={posStyle('right')} onPointerDown={onDown('right')}>
           <div className="hud-right">
-            {layout.clock && cur.clock && clock && <div className="hud-chips"><span className="hud-chip lxr-mono">{t('month_' + MONTHS[((clock.month || 1) - 1) % 12])} {clock.day}, {clock.year}</span><span className="hud-chip lxr-mono">{pad(clock.hour)}:{pad(clock.minute)}</span></div>}
+            {layout.clock && cur.clock && clock && <div className={'hud-chips' + part('item:clock').className} style={part('item:clock').style} onPointerDown={part('item:clock').onPointerDown}><span className="hud-chip lxr-mono">{t('month_' + MONTHS[((clock.month || 1) - 1) % 12])} {clock.day}, {clock.year}</span><span className="hud-chip lxr-mono">{pad(clock.hour)}:{pad(clock.minute)}</span></div>}
             {layout.identity && cur.identity && (
-              <div className="hud-id">
+              <div className={'hud-id' + part('item:identity').className} style={part('item:identity').style} onPointerDown={part('item:identity').onPointerDown}>
                 {cur.showId && S.id != null && <span className="hud-chip lxr-mono hud-chip--id">#{S.id}</span>}
                 <span className="hud-id__name">{S.name || ''}</span>
                 {cur.showJob && S.job && <span className="hud-chip hud-chip--job lxr-mono">{[S.job.label, S.job.grade].filter(Boolean).join(' · ')}</span>}
               </div>
             )}
             {money && (
-              <div className="hud-money">
+              <div className={'hud-money' + part('item:money').className} style={part('item:money').style} onPointerDown={part('item:money').onPointerDown}>
                 <span className="hud-money__cash lxr-num">${fmt(S.cash)}</span>
                 {cur.showBank && <span className="hud-money__bank lxr-mono">{t('bank')} ${fmt(S.bank)}</span>}
                 {cur.showBlood && Number(S.blood) > 0 && <span className="hud-money__blood lxr-mono">{t('blood')} ${fmt(S.blood)}</span>}
@@ -158,9 +160,9 @@ export function App() {
               {layout.status.map((key) => {
                 const v = stat(key); const isLow = low(key, v);
                 return cur.style === 'rings' ? (
-                  <div key={key} className={'hud-ringstat' + (isLow ? ' is-low' : '') + (pulse === key ? ' pulse' : '')} title={t(key)}><Ring v={v} cls={'hud-ring--' + key} /><span className="hud-ringstat__val lxr-mono">{Math.round(v)}</span><span className="hud-ringstat__label lxr-mono">{t(key)}</span></div>
+                  <div key={key} className={'hud-ringstat' + (isLow ? ' is-low' : '') + (pulse === key ? ' pulse' : '') + statDrag(key).className} style={statDrag(key).style} onPointerDown={statDrag(key).onPointerDown} title={t(key)}><Ring v={v} cls={'hud-ring--' + key} /><span className="hud-ringstat__val lxr-mono">{Math.round(v)}</span><span className="hud-ringstat__label lxr-mono">{t(key)}</span></div>
                 ) : (
-                  <div key={key} className={'hud-stat hud-stat--' + key + (isLow ? ' is-low' : '') + (pulse === key ? ' pulse' : '')}>
+                  <div key={key} className={'hud-stat hud-stat--' + key + (isLow ? ' is-low' : '') + (pulse === key ? ' pulse' : '') + statDrag(key).className} style={statDrag(key).style} onPointerDown={statDrag(key).onPointerDown}>
                     <div className="hud-stat__top"><span className="lxr-mono hud-stat__label">{t(key)}</span><span className="hud-stat__val">{Math.round(v)}</span></div>
                     <div className="lxr-meter"><div className="lxr-meter-fill" style={{ width: v + '%' }} /></div>
                   </div>
@@ -174,19 +176,19 @@ export function App() {
         <div className={anchor('bottomright')} style={posStyle('bottomright')} onPointerDown={onDown('bottomright')}>
           <div className="hud-right-b">
             {m && layout.mount && cur.mount && (
-              <div className="hud-mount">
+              <div className={'hud-mount' + part('item:mount').className} style={part('item:mount').style} onPointerDown={part('item:mount').onPointerDown}>
                 <div className="hud-mount__speed"><span className="lxr-num">{m.speed}</span><span className="lxr-mono">{t('unit_' + (m.unit || 'mph'))}</span></div>
                 {m.kind === 'horse' && <div className="hud-mount__cores"><div className="hud-core"><span className="lxr-mono">{t('horse_health')}</span><div className="lxr-meter"><div className="lxr-meter-fill" style={{ width: (m.health || 0) + '%' }} /></div></div><div className="hud-core"><span className="lxr-mono">{t('horse_stamina')}</span><div className="lxr-meter"><div className="lxr-meter-fill" style={{ width: (m.stamina || 0) + '%' }} /></div></div></div>}
               </div>
             )}
-            {w && layout.weapon && cur.weapon && <div className="hud-weapon"><span className="hud-weapon__name">{w.label}</span><span className="hud-weapon__ammo lxr-num">{w.ammo ?? ''}</span></div>}
+            {w && layout.weapon && cur.weapon && <div className={'hud-weapon' + part('item:weapon').className} style={part('item:weapon').style} onPointerDown={part('item:weapon').onPointerDown}><span className="hud-weapon__name">{w.label}</span><span className="hud-weapon__ammo lxr-num">{w.ammo ?? ''}</span></div>}
           </div>
         </div>
 
         {/* key hints */}
         {cur.help && preset.help !== 'none' && help.length > 0 && (
           <div className={anchor('help')} style={posStyle('help')} onPointerDown={onDown('help')}>
-            <div className="hud-help">{help.map((h) => <span key={h.id} className="hud-help__k"><span className="lxr-key">{h.key}</span><span className="lxr-mono">{t('help_' + h.id)}</span></span>)}</div>
+            <div className="hud-help">{help.map((h) => <span key={h.id} className={'hud-help__k' + part(('item:help:' + h.id) as Element).className} style={part(('item:help:' + h.id) as Element).style} onPointerDown={part(('item:help:' + h.id) as Element).onPointerDown}><span className="lxr-key">{h.key}</span><span className="lxr-mono">{t('help_' + h.id)}</span></span>)}</div>
           </div>
         )}
 

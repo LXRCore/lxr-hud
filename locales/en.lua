@@ -15,7 +15,7 @@ Locale.Register('en', {
         minimap = 'Map', minimap_radar = 'Radar', minimap_off = 'Off',
         blood = 'Blood money', voice = 'Voice', scale = 'Size', preset = 'Layout', preset_classic = 'Classic', preset_compact = 'Compact', preset_cinematic = 'Cinematic',
         style = 'Body row style', style_bars = 'Bars', style_rings = 'Rings', cinema = 'Cinema bars', cinema_bar = 'Bar height', edit_layout = 'Edit layout — drag the blocks',
-        edit_hint = 'Drag any block where you want it. Esc cancels.', reset_positions = 'Back to the layout', cancel = 'Cancel', reset = 'Reset everything', reset_confirm = 'Undo every change to your frame?',
+        edit_hint = 'Drag a whole block, or any single piece of it — a bar, a ring, the clock, the money, a key hint. Esc cancels.', reset_positions = 'Back to the layout', cancel = 'Cancel', reset = 'Reset everything', reset_confirm = 'Undo every change to your frame?',
         group_frame = 'The frame', group_show = 'What is shown', group_code = 'Frame code — share your layout',
         code_hint = 'paste a frame code here, or export yours', code_export = 'Export', code_import = 'Import',
         show_clock = 'Date and clock', show_identity = 'Name', show_money = 'Money', show_help = 'Key hints', show_voice = 'Voice light', show_showId = 'Server id', show_showJob = 'Trade', show_showBank = 'Bank', show_showBlood = 'Blood money',
