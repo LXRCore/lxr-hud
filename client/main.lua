@@ -140,6 +140,24 @@ local function drunkTick()
     end
 end
 
+-- ── arriving somewhere: the place card (the place changed, and it was left long enough ago)
+local lastPlace, leftAt = nil, {}
+local function arrival(s)
+    local A = Config.Arrival
+    if not A or not A.enabled then return end
+    local place = s.place
+    if place == lastPlace then return end
+    if lastPlace then leftAt[lastPlace] = GetGameTimer() end
+    lastPlace = place
+    if not place then return end
+    if leftAt[place] and GetGameTimer() - leftAt[place] < (A.minAwaySeconds or 90) * 1000 then return end
+    local c = s.clock or {}
+    local temp = s.temp and (s.temp.unit == 'f' and (math.floor(s.temp.felt * 9 / 5 + 32) .. '°F') or (s.temp.felt .. '°C')) or nil
+    local desc = ('%02d:%02d%s'):format(c.hour or 0, c.minute or 0, temp and (' · ' .. temp) or '')
+    if GetResourceState('lxr-nui') == 'started' then exports['lxr-nui']:Toast({ title = place, description = desc, type = 'inform', duration = A.duration or 4500 })
+    else LXRCore.Notify(place .. ' · ' .. desc, 'inform') end
+end
+
 local function snapshot()
     local ped = PlayerPedId()
     local pos = GetEntityCoords(ped)
@@ -202,6 +220,7 @@ CreateThread(function()
         show(visible)
         if visible then
             local s = snapshot()
+            arrival(s)
             local out = {}
             for k, v in pairs(s) do if diff(v, last[k]) then out[k] = v end end
             for k in pairs(last) do if s[k] == nil then out[k] = false end end

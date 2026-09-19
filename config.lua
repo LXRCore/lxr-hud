@@ -80,6 +80,9 @@ Config.Help = {
 }
 
 -- Places for the compass strip: nearest one within `radius` is shown
+-- arriving somewhere: a card with the place, the hour and the felt temperature (once per place, not on every step across its edge)
+Config.Arrival = { enabled = true, minAwaySeconds = 90, duration = 4500 }
+
 Config.Places = {
     { label = 'Valentine',    coords = vector3(-300.0, 800.0, 118.0),   radius = 260.0 },
     { label = 'Saint Denis',  coords = vector3(2600.0, -1250.0, 50.0),  radius = 520.0 },
