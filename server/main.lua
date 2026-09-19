@@ -11,11 +11,13 @@
 
 local LXRCore = exports['lxr-core']:GetCoreObject()
 local RES = GetCurrentResourceName()
-local NEEDS = { 'hunger', 'thirst', 'cleanliness', 'stress' }
+local NEEDS = { 'hunger', 'thirst', 'cleanliness', 'stress', 'drunk' }
+local climate = {}   -- src → 'cold' | 'hot' | 'freezing' | nil (the client reports what it feels)
 local activity = {}   -- src → 'idle' | 'riding' | 'running' (client-reported, only scales decay)
 local starving = {}   -- src → last damage tick
 local buckets = {}
 
+local freezing = {}
 local function limited(src)
     local b = buckets[src]
     local now = GetGameTimer()
@@ -35,7 +37,7 @@ local function get(src, k)
         local P = LXRCore.Functions.GetPlayer(src)
         v = P and P.PlayerData.metadata[k]
     end
-    return tonumber(v) or (k == 'stress' and 0 or 100)
+    return tonumber(v) or ((Config.Needs.zeroStart or {})[k] and 0 or 100)
 end
 
 local function set(src, k, v)
@@ -61,9 +63,12 @@ CreateThread(function()
             if P and not P.PlayerData.metadata.isdead then
                 local act = activity[src]
                 local mult = (act == 'riding' or act == 'running') and Config.Needs.riding or nil
+                local cl = climate[src]
+                local cmult = (cl == 'cold' or cl == 'freezing') and Config.Needs.cold or cl == 'hot' and Config.Needs.hot or nil
                 for _, k in ipairs(NEEDS) do
                     local d = Config.Needs.decay[k] or 0
                     if mult and mult[k] then d = d * mult[k] end
+                    if cmult and cmult[k] then d = d * cmult[k] end
                     if d ~= 0 then add(src, k, -d) end
                 end
             end
@@ -82,14 +87,20 @@ CreateThread(function()
                 starving[src] = now
                 TriggerClientEvent('lxr-hud:client:starve', src, Config.Needs.starve.damage)
             end
+            local fd = Config.Temperature.freezeDamage
+            if climate[src] == 'freezing' and fd and fd.enabled and now - (freezing[src] or 0) >= fd.everyMs then
+                freezing[src] = now
+                TriggerClientEvent('lxr-hud:client:starve', src, fd.damage, 'cold')
+            end
         end
     end
 end)
 
-RegisterNetEvent('lxr-hud:server:activity', function(kind)
+RegisterNetEvent('lxr-hud:server:activity', function(kind, feel)
     local src = source
     if limited(src) then return end
     if kind == 'riding' or kind == 'running' or kind == 'idle' then activity[src] = kind end
+    if feel == 'cold' or feel == 'hot' or feel == 'freezing' then climate[src] = feel elseif feel == 'fine' then climate[src] = nil end
 end)
 RegisterNetEvent('lxr-hud:server:shot', function()
     local src = source
@@ -141,11 +152,14 @@ RegisterNetEvent('lxr-hud:server:consumed', function(name)
         end
     else
         if not P.Functions.RemoveItem(name, 1, held.slot, 'consumed') then return end
+        -- what stays behind (the catalog's `use.gives`: the bottle, the jar, the tin)
+        if use.gives and LXRCore.Shared.Items[use.gives] then P.Functions.AddItem(use.gives, 1, nil, {}, 'consumable leftover') end
     end
     local applied = {}
     for k, v in pairs(def.effects) do
         v = math.max(-Config.Security.maxEffect, math.min(Config.Security.maxEffect, tonumber(v) or 0))
-        if k == 'hunger' or k == 'thirst' or k == 'cleanliness' or k == 'stress' then applied[k] = add(src, k, v)
+        if k == 'hunger' or k == 'thirst' or k == 'cleanliness' or k == 'stress' or k == 'drunk' then applied[k] = add(src, k, v)
+        elseif k == 'warmth' then applied.warmth = v
         elseif k == 'health' or k == 'stamina' or k == 'core_health' or k == 'core_stamina' then applied[k] = v end -- the client applies bars and cores
     end
     TriggerClientEvent('lxr-hud:client:effects', src, applied)
@@ -173,4 +187,4 @@ exports('AddNeed', add)
 exports('AddStress', function(src, n) return add(src, 'stress', n) end)
 exports('RemoveStress', function(src, n) return add(src, 'stress', -(n or 0)) end)
 
-AddEventHandler('playerDropped', function() activity[source] = nil starving[source] = nil buckets[source] = nil end)
+AddEventHandler('playerDropped', function() activity[source] = nil starving[source] = nil freezing[source] = nil climate[source] = nil buckets[source] = nil end)

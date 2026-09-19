@@ -8,6 +8,7 @@ Locale.Register('ka', {
     command = { settings = 'HUD-ის პარამეტრები', toggle = 'HUD-ის ჩვენება ან დამალვა' },
     error = { empty = '%{item} ცარიელია.' },
     ui = {
+        drunk = 'სიმთვრალე', temp = 'ტემპერატურა', feel_fine = 'ნორმალური', feel_cold = 'სიცივე', feel_freezing = 'ყინვა', feel_hot = 'სიცხე',
         health = 'ჯანმრთელობა', stamina = 'გამძლეობა', hunger = 'საკვები', thirst = 'წყალი', cleanliness = 'სისუფთავე', stress = 'ნერვები',
         bank = 'ბანკი', horse_health = 'ცხენი', horse_stamina = 'გამძლეობა', unit_mph = 'მ/სთ', unit_kmh = 'კმ/სთ',
         settings_eyebrow = 'HUD', settings_title = 'შენი ჩარჩო', close = 'დახურვა', save = 'შენახვა', opacity = 'გამჭვირვალობა',

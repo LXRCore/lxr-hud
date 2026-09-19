@@ -100,10 +100,13 @@ Config.Places = {
 -- ████████████████████████████████████████████████████████████████████████████████
 Config.Needs = {
     tickMs      = 60000,              -- one tick a minute
-    decay       = { hunger = 0.45, thirst = 0.65, cleanliness = 0.12, stress = -0.35 }, -- per tick (stress falls on its own)
+    decay       = { hunger = 0.45, thirst = 0.65, cleanliness = 0.12, stress = -0.35, drunk = -2.5 }, -- per tick (stress and drink wear off on their own)
     riding      = { hunger = 1.2, thirst = 1.5 },   -- multipliers while on a horse or running (client reports activity)
-    floors      = { hunger = 0, thirst = 0, cleanliness = 0, stress = 0 },
-    ceilings    = { hunger = 100, thirst = 100, cleanliness = 100, stress = 100 },
+    cold        = { hunger = 1.4 },                 -- … while the character feels cold (temperature below Config.Temperature.coldAt)
+    hot         = { thirst = 1.6 },                 -- … while hot
+    floors      = { hunger = 0, thirst = 0, cleanliness = 0, stress = 0, drunk = 0 },
+    ceilings    = { hunger = 100, thirst = 100, cleanliness = 100, stress = 100, drunk = 100 },
+    zeroStart   = { stress = true, drunk = true },  -- needs that start at 0 (the rest start full)
     starve      = { damage = 4, everyMs = 30000 },  -- health lost while hunger or thirst sits at 0
     warnAt      = { hunger = 20, thirst = 20 },     -- the HUD blinks the icon under this
     dirtyAt     = 25,                                -- cleanliness under this: shopkeepers may refuse, dogs bark (other resources read it)
@@ -135,6 +138,28 @@ Config.Consumables = {
         inject = { dict = 'mech_inventory@drinking@bottle_cylinder_d1-3_h30-5_neck_a13_b2-5', anim = 'chug_a' },
     },
     stamina    = { core = true },     -- effects.stamina refills the stamina core on the client
+}
+
+-- ████████████████████████████████████████████████████████████████████████████████
+-- ████████████████████████ TEMPERATURE · FLIES · DRINK ═══════════════════════════
+-- ████████████████████████████████████████████████████████████████████████████████
+-- The felt temperature = the game's ambient reading at the character (GET_TEMPERATURE_AT_COORDS, °C) + the warmth
+-- of what is worn (lxr-clothing's categories) + a drink's warmth for a while. Cold makes hunger fall faster and, when
+-- freezing, costs health; heat makes thirst fall faster. The HUD shows the reading by the clock.
+Config.Temperature = {
+    enabled = true,
+    unit = 'c',                       -- 'c' | 'f' (display only)
+    coldAt = 5, freezeAt = -5, hotAt = 32,
+    warmth = { coats = 8, coats_closed = 12, vests = 3, gloves = 2, hats = 2, boots = 2, ponchos = 10, cloaks = 8, neckwear = 1, chaps = 2, shirts_full = 1 },
+    drinkWarmthMinutes = 10,          -- a drink's `warmth` effect counts for this long
+    freezeDamage = { damage = 3, everyMs = 30000, enabled = true },
+}
+Config.Flies = { enabled = true, below = 25, dict = 'scr_mg_cleaning_stalls', name = 'scr_mg_stalls_manure_flies', scale = 1.0 }   -- names from the game's particle list
+Config.Drunk = {
+    effect = 'PlayerDrunkSaloon1',    -- the game's post-fx (animpostfx list): PlayerDrunk01 · PlayerDrunkSaloon1 · PlayerDrunkAberdeen
+    at = 35,                          -- drunk level (0–100) where the effect starts
+    heavyAt = 70,                     -- … and where the walk goes (move rate below)
+    moveRate = 0.8,
 }
 
 -- ████████████████████████████████████████████████████████████████████████████████

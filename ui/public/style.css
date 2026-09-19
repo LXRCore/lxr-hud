@@ -28,6 +28,10 @@ html, body { margin: 0; height: 100%; background: transparent; overflow: hidden;
 .lxr .hud-right { display: flex; flex-direction: column; align-items: flex-end; gap: 6px; }
 .lxr .hud-chips { display: flex; gap: 6px; }
 .lxr .hud-chip { padding: 5px 10px; background: var(--lxr-panel-solid); border: var(--lxr-hairline) solid var(--lxr-edge); border-radius: var(--lxr-radius); color: var(--lxr-bone); }
+.lxr .hud-chip--temp { display: inline-flex; align-items: center; gap: 4px; }
+.lxr .hud-chip--temp .hud-ico { width: 12px; height: 12px; }
+.lxr .hud-chip--temp.is-cold, .lxr .hud-chip--temp.is-freezing { color: var(--lxr-smoke); border-color: var(--lxr-bone-40); }
+.lxr .hud-chip--temp.is-freezing, .lxr .hud-chip--temp.is-hot { color: var(--lxr-blood-lit); border-color: var(--lxr-blood-lit); }
 .lxr .hud-chip--job { color: var(--lxr-ash); }
 .lxr .hud-id { display: flex; align-items: center; gap: var(--lxr-s2); margin-top: 4px; }
 .lxr .hud-id__name { font-family: var(--lxr-font-cut); font-size: var(--lxr-text-xl); color: var(--lxr-bone); }

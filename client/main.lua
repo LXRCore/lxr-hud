@@ -82,6 +82,64 @@ local function mount(ped)
     return nil
 end
 
+-- ── temperature: the game's reading + what is worn + a recent drink
+local warmUntil, warmBy = 0, 0
+local lastFeel = nil
+local function worn()
+    if GetResourceState('lxr-clothing') ~= 'started' then return 0 end
+    local ok, w = pcall(function() return exports['lxr-clothing']:Wearing() end)
+    if not ok or type(w) ~= 'table' then return 0 end
+    local sum = 0
+    for cat, st in pairs(w) do
+        if type(st) == 'table' and st.worn and not st.hidden then sum = sum + (Config.Temperature.warmth[cat] or 0) end
+    end
+    return sum
+end
+local function temperature(pos)
+    if not Config.Temperature.enabled then return nil end
+    local ambient = GetTemperatureAtCoords(pos.x, pos.y, pos.z)
+    local felt = ambient + worn() + (GetGameTimer() < warmUntil and warmBy or 0)
+    local feel = felt <= Config.Temperature.freezeAt and 'freezing' or felt <= Config.Temperature.coldAt and 'cold' or felt >= Config.Temperature.hotAt and 'hot' or 'fine'
+    return { ambient = math.floor(ambient + 0.5), felt = math.floor(felt + 0.5), feel = feel, unit = Config.Temperature.unit }
+end
+
+-- ── flies when unwashed (the game's own swarm, networked so others see it)
+local flies = nil
+local function fliesTick()
+    local F = Config.Flies
+    if not F or not F.enabled then return end
+    local dirty = (need('cleanliness') or 100) < F.below
+    if dirty and not flies then
+        RequestNamedPtfxAsset(F.dict)
+        local t = GetGameTimer() + 2000
+        while not HasNamedPtfxAssetLoaded(F.dict) and GetGameTimer() < t do Wait(10) end
+        if HasNamedPtfxAssetLoaded(F.dict) then
+            UseParticleFxAsset(F.dict)
+            flies = StartNetworkedParticleFxLoopedOnEntity(F.name, PlayerPedId(), 0.0, 0.0, 0.6, 0.0, 0.0, 0.0, F.scale or 1.0, false, false, false)
+        end
+    elseif not dirty and flies then
+        StopParticleFxLooped(flies, false)
+        flies = nil
+    end
+end
+
+-- ── drink: the game's post-fx above `at`, a heavy walk above `heavyAt`
+local drunkOn, drunkHeavy = false, false
+local function drunkTick()
+    local Dk = Config.Drunk
+    local lvl = need('drunk') or 0
+    local on = lvl >= (Dk.at or 35)
+    if on ~= drunkOn then
+        drunkOn = on
+        if on then AnimpostfxPlay(Dk.effect) else AnimpostfxStop(Dk.effect) end
+    end
+    local heavy = lvl >= (Dk.heavyAt or 70)
+    if heavy ~= drunkHeavy then
+        drunkHeavy = heavy
+        SetPedMoveRateOverride(PlayerPedId(), heavy and (Dk.moveRate or 0.8) or 1.0)
+    end
+end
+
 local function snapshot()
     local ped = PlayerPedId()
     local pos = GetEntityCoords(ped)
@@ -92,7 +150,8 @@ local function snapshot()
     return {
         health = math.floor(GetEntityHealth(ped) / math.max(1, GetEntityMaxHealth(ped)) * 100 + 0.5),
         stamina = core(ped, 1),
-        hunger = need('hunger') or 100, thirst = need('thirst') or 100, cleanliness = need('cleanliness') or 100, stress = need('stress') or 0,
+        hunger = need('hunger') or 100, thirst = need('thirst') or 100, cleanliness = need('cleanliness') or 100, stress = need('stress') or 0, drunk = need('drunk') or 0,
+        temp = temperature(pos),
         place = nearestPlace(pos),   -- the heading has its own fast tick below
         clock = clock(),
         name = pd.charinfo and (pd.charinfo.firstname .. ' ' .. pd.charinfo.lastname) or '',
@@ -150,7 +209,10 @@ CreateThread(function()
             -- activity for the server's decay multipliers, once every few seconds
             local ped = PlayerPedId()
             local act = (s.mount and s.mount.kind == 'horse' and s.mount.speed > 8) and 'riding' or (IsPedRunning(ped) or IsPedSprinting(ped)) and 'running' or 'idle'
-            if act ~= last._act and (GetGameTimer() - (last._actAt or 0)) > 5000 then last._act = act last._actAt = GetGameTimer() TriggerServerEvent('lxr-hud:server:activity', act) end
+            local feel = s.temp and s.temp.feel or 'fine'
+            if (act ~= last._act or feel ~= lastFeel) and (GetGameTimer() - (last._actAt or 0)) > 5000 then last._act = act lastFeel = feel last._actAt = GetGameTimer() TriggerServerEvent('lxr-hud:server:activity', act, feel) end
+            fliesTick()
+            drunkTick()
         end
     end
 end)
@@ -238,13 +300,20 @@ RegisterNetEvent('lxr-hud:client:effects', function(applied)
     end
     if applied.core_health then bump(0, applied.core_health) end
     if applied.core_stamina then bump(1, applied.core_stamina) end
+    if applied.warmth then warmBy = applied.warmth warmUntil = GetGameTimer() + (Config.Temperature.drinkWarmthMinutes or 10) * 60000 end
 end)
 
-RegisterNetEvent('lxr-hud:client:starve', function(damage)
+RegisterNetEvent('lxr-hud:client:starve', function(damage, why)
     local ped = PlayerPedId()
     if IsEntityDead(ped) then return end
     SetEntityHealth(ped, math.max(1, GetEntityHealth(ped) - (tonumber(damage) or 4)))
-    SendNUIMessage({ action = 'pulse', key = (need('hunger') or 1) <= 0 and 'hunger' or 'thirst' })
+    SendNUIMessage({ action = 'pulse', key = why == 'cold' and 'temp' or (need('hunger') or 1) <= 0 and 'hunger' or 'thirst' })
+end)
+AddEventHandler('onResourceStop', function(res)
+    if res ~= GetCurrentResourceName() then return end
+    if flies then StopParticleFxLooped(flies, false) end
+    if drunkOn then AnimpostfxStop(Config.Drunk.effect) end
+    SetPedMoveRateOverride(PlayerPedId(), 1.0)
 end)
 
 -- stress from shooting

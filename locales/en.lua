@@ -8,6 +8,7 @@ Locale.Register('en', {
     command = { settings = 'HUD settings', toggle = 'Show or hide the HUD' },
     error = { empty = 'The %{item} is empty.' },
     ui = {
+        drunk = 'Drink', temp = 'Temperature', feel_fine = 'Comfortable', feel_cold = 'Cold', feel_freezing = 'Freezing', feel_hot = 'Hot',
         health = 'Health', stamina = 'Stamina', hunger = 'Food', thirst = 'Water', cleanliness = 'Clean', stress = 'Nerves',
         bank = 'Bank', horse_health = 'Horse', horse_stamina = 'Stamina', unit_mph = 'mph', unit_kmh = 'km/h',
         settings_eyebrow = 'HUD', settings_title = 'Your frame', close = 'Close', save = 'Save', opacity = 'Opacity',

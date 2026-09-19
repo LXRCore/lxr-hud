@@ -57,6 +57,8 @@ const ICON: Record<string, string> = {
   thirst: 'M12 3s6 7 6 11a6 6 0 0 1-12 0c0-4 6-11 6-11z',
   cleanliness: 'M12 3l1.8 5.2L19 10l-5.2 1.8L12 17l-1.8-5.2L5 10l5.2-1.8L12 3zM19 16l.8 2.2L22 19l-2.2.8L19 22l-.8-2.2L16 19l2.2-.8L19 16z',
   stress: 'M3 12h3l2-6 3 12 3-9 2 5 2-2h3',
+  drunk: 'M8 3h8l-1 7a3 3 0 0 1-6 0zM12 13v6M9 21h6',
+  temp: 'M10 4a2 2 0 0 1 4 0v9.5a4 4 0 1 1-4 0zM12 8v9',
 };
 function Icon({ k }: { k: string }) { return <svg className="hud-ico" viewBox="0 0 24 24"><path d={ICON[k] || 'M12 4v16M4 12h16'} /></svg>; }
 
@@ -155,7 +157,7 @@ export function App() {
         {/* clock · identity · money */}
         <div className={anchor('right')} style={posStyle('right')} onPointerDown={onDown('right')}>
           <div className="hud-right">
-            {layout.clock && cur.clock && clock && <div className={'hud-chips' + part('item:clock').className} style={part('item:clock').style} onPointerDown={part('item:clock').onPointerDown}><span className="hud-chip lxr-mono">{t('month_' + MONTHS[((clock.month || 1) - 1) % 12])} {clock.day}, {clock.year}</span><span className="hud-chip lxr-mono">{pad(clock.hour)}:{pad(clock.minute)}</span></div>}
+            {layout.clock && cur.clock && clock && <div className={'hud-chips' + part('item:clock').className} style={part('item:clock').style} onPointerDown={part('item:clock').onPointerDown}><span className="hud-chip lxr-mono">{t('month_' + MONTHS[((clock.month || 1) - 1) % 12])} {clock.day}, {clock.year}</span><span className="hud-chip lxr-mono">{pad(clock.hour)}:{pad(clock.minute)}</span>{S.temp && <span className={'hud-chip lxr-mono hud-chip--temp' + (S.temp.feel !== 'fine' ? ' is-' + S.temp.feel : '') + (pulse === 'temp' ? ' pulse' : '')} title={t('feel_' + S.temp.feel)}><Icon k="temp" />{S.temp.unit === 'f' ? Math.round(S.temp.felt * 9 / 5 + 32) + '°F' : S.temp.felt + '°C'}</span>}</div>}
             {layout.identity && cur.identity && (
               <div className={'hud-id' + part('item:identity').className} style={part('item:identity').style} onPointerDown={part('item:identity').onPointerDown}>
                 {cur.showId && S.id != null && <span className="hud-chip lxr-mono hud-chip--id">#{S.id}</span>}

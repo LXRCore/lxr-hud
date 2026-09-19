@@ -38,6 +38,8 @@ The dashed square in the first shot stands where the game draws its radar; the H
   catalog's `use.anim`, a cancellable progress bar through lxr-nui, charges
   for refillables (canteen), then the effects land — needs on the server,
   health / stamina / cores on the client. Horse feed stays with lxr-horses.
+* **Temperature** — the game's reading at the character + the warmth of what is worn + a recent drink, by the clock; cold and heat change how fast hunger and thirst fall, freezing hurts. `Config.Temperature`.
+* **Flies · drink · leftovers** — a swarm follows the unwashed; spirits raise a `drunk` need that brings the game's drunk post-fx and a heavy walk; a bottle stays behind (`use.gives`).
 * **Nerves** — camera shakes by bracket; shooting adds stress when enabled.
 * **Settings** — `/hud` opens a panel (opacity, compass, body row, weapon,
   mount, radar) persisted per client; `/togglehud` hides everything.

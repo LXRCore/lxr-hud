@@ -1,6 +1,8 @@
 # Changelog — lxr-hud
 
 ## 3.0.0 — 2026-09-19
+* Temperature: the game's ambient reading at the character plus the warmth of what is worn (lxr-clothing categories, `Config.Temperature.warmth`) and a recent drink's `warmth`; shown by the clock in °C or °F; cold speeds hunger, heat speeds thirst, freezing costs health (`Config.Temperature`).
+* Flies when unwashed (the game's own swarm, networked), drink as a need with the game's drunk post-fx above a level and a heavy walk above another (`Config.Flies`, `Config.Drunk`), and what a consumable leaves behind (`use.gives` — spirits give back the empty bottle).
 * Fix: `LXRCore.PlayerData` stays current — the core object comes back as a copy, so cash, job and metadata never changed after login in this resource. It now listens to `lxr:client:data` / `lxr:client:unloaded` and refreshes its copy.
 * Consume animations that exist: the bottle chug (`mech_inventory@drinking@bottle_cylinder…` / `chug_a`, rsg-consume's), canned food, and the canteen with rsg-canteen's drinking loop, prop and right-hand offsets (`bone` / `offset` per animation). The old drink dictionary never loaded, so the ped stood still holding the bottle. A dictionary that fails to load is printed.
 * LXRCore v3 release line: every resource ships as 3.0.0 from here (the entries below are the road to it).
