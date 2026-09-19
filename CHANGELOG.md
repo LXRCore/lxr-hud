@@ -1,6 +1,7 @@
 # Changelog — lxr-hud
 
 ## 3.0.0 — 2026-09-19
+* Fix: `LXRCore.PlayerData` stays current — the core object comes back as a copy, so cash, job and metadata never changed after login in this resource. It now listens to `lxr:client:data` / `lxr:client:unloaded` and refreshes its copy.
 * Consume animations that exist: the bottle chug (`mech_inventory@drinking@bottle_cylinder…` / `chug_a`, rsg-consume's), canned food, and the canteen with rsg-canteen's drinking loop, prop and right-hand offsets (`bone` / `offset` per animation). The old drink dictionary never loaded, so the ped stood still holding the bottle. A dictionary that fails to load is printed.
 * LXRCore v3 release line: every resource ships as 3.0.0 from here (the entries below are the road to it).
 
