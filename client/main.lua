@@ -178,8 +178,9 @@ RegisterNetEvent('lxr-hud:client:consume', function(c)
         while not HasAnimDictLoaded(a.dict) and t < 50 do Wait(10) t = t + 1 end
         if HasAnimDictLoaded(a.dict) then TaskPlayAnim(ped, a.dict, a.anim, 2.0, 2.0, c.time or Config.Consumables.defaultMs, 31, 0.0, false, false, false) end
     end
-    local model = c.prop and joaat(c.prop) or (a.prop and joaat(a.prop))
-    if model then
+    local propName = c.prop and ((Config.Consumables.props or {})[c.prop] or c.prop) or a.prop
+    local model = propName and joaat(propName) or nil
+    if model and IsModelInCdimage(model) then
         RequestModel(model)
         local t = 0
         while not HasModelLoaded(model) and t < 50 do Wait(10) t = t + 1 end

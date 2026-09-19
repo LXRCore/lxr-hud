@@ -111,6 +111,15 @@ Config.Consumables = {
     register   = true,
     defaultMs  = 2500,                -- when the item has no `use.time`
     skipPrefix = { 'horse_' },        -- effects that belong to another resource (horse feed is lxr-horses')
+    -- the catalog names what is in the hand in plain words (`use.prop = 'mug'`); this is the game model for each
+    -- (models seen working in the world; a prop the game does not know is simply not shown)
+    props = {
+        bottle_jar = 'p_bottle03x', bottle_whiskey = 's_inv_whiskey01x', bottle_beer = 'p_bottlebeer01a', bottle_wine = 'p_bottlewine01x',
+        bottle_brandy = 'p_bottlebrandy01x', bottle_rum = 's_inv_rum01x', tonic = 's_craftedtonic_02x', can = 's_canbeans01x',
+        mug = 'p_mugcoffee01x', cup_tea = 'p_cup01x', canteen = 'p_cs_canteen_hercule', bread = 'p_bread04x', apple = 'p_apple01x',
+        cigar = 'p_cigar02x', cigarette = 'p_cigarette01x', bandage = 'p_bandage01x', pipe = 'p_pipeholder01x',
+        meat_cooked = 'p_baitbread01x', syringe = nil, book = nil, hay = nil, brush = nil,
+    },
     anims = {                          -- by the catalog's `use.anim` key
         eat   = { dict = 'mech_inventory@eating@multi_bite@sphere_d8-2_sandwich', anim = 'quick_left_hand', prop = 'p_bread01x' },
         drink = { dict = 'mech_inventory@drinking@canteen', anim = 'drink_left_hand', prop = 'p_canteen01x' },
