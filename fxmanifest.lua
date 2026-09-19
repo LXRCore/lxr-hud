@@ -25,7 +25,7 @@ lua54 'yes'
 name 'lxr-hud'
 author 'iBoss21 / LXRCore'
 description 'LXRCore v3 HUD and needs: compass, clock, identity, money, body row, weapon, mount; server-owned hunger/thirst/cleanliness/stress and catalog consumables'
-version '3.1.0'
+version '3.1.1'
 repository 'https://github.com/LXRCore/lxr-hud'
 
 shared_scripts {

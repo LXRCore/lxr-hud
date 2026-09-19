@@ -94,7 +94,7 @@ local function snapshot()
         name = pd.charinfo and (pd.charinfo.firstname .. ' ' .. pd.charinfo.lastname) or '',
         job = { label = jobDef and jobDef.label or job.name or '', grade = grade and grade.name or '', onduty = job.onduty },
         cash = pd.money and pd.money.cash or 0, bank = pd.money and pd.money.bank or 0, blood = pd.money and pd.money.bloodmoney or 0,
-        id = GetPlayerServerId(PlayerId()), talking = NetworkIsPlayerTalking(PlayerId()) == 1 or NetworkIsPlayerTalking(PlayerId()) == true,
+        id = GetPlayerServerId(PlayerId()), talking = MumbleIsPlayerTalking(PlayerId()) == true,
         weapon = weapon(ped), mount = mount(ped),
         dead = pd.metadata and pd.metadata.isdead or false,
     }
@@ -122,7 +122,8 @@ CreateThread(function()
     while true do
         Wait(Config.Layout.refreshMs)
         local loggedIn = LocalPlayer.state.isLoggedIn == true
-        local visible = loggedIn and not hidden and not (Config.Layout.hideWhilePaused and IsPauseMenuActive())
+        -- down while any page has the mouse (inventory, creator, shops …) so nothing paints under it
+        local visible = loggedIn and not hidden and not IsNuiFocused() and not (Config.Layout.hideWhilePaused and IsPauseMenuActive())
         show(visible)
         if visible then
             local s = snapshot()
@@ -140,6 +141,9 @@ end)
 
 -- first paint: locale, layout, settings, brand
 local function init()
+    -- the game's own cores and the horse cores are ours to draw
+    N(0x50C803A4CD5932C5, false) -- _SHOW_PLAYER_CORES
+    N(0xD4EE21B7CC7FD350, false) -- _SHOW_HORSE_CORES
     SendNUIMessage({ action = 'init', locale = Lang.bundle(), lang = Config.Lang, layout = Config.Layout, settings = settings or loadSettings(), brand = LXRCore.Brand, warnAt = Config.Needs.warnAt, help = Config.Help })
     applyRadar()
     last = {}

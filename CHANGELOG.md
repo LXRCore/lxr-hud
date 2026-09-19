@@ -1,5 +1,10 @@
 # Changelog — lxr-hud
 
+## 3.1.1 — 2026-09-19
+* Fix: the loop died on the first tick (`NetworkIsPlayerTalking` is not a RedM native) — nothing updated, the compass froze. The talking flag comes from mumble now.
+* The HUD stays down while any page has the mouse (inventory, creator, shops) and until the character stands in the world (core `isLoggedIn` flips on spawn).
+* The game's own player and horse cores are switched off — the frame draws them.
+
 ## 3.0.0 — 2026-09-17
 * Rebuilt on the LXRCore v3 native API; the multi-framework layer is gone.
 * HUD: compass tape with nearest place, clock and date, identity, money, six-meter body row, weapon and rounds, mount speed and horse cores.
