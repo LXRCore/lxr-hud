@@ -151,11 +151,25 @@ CreateThread(function()
     end
 end)
 
+-- the game's own cores and meters: _UITUTORIAL_SET_RPG_ICON_VISIBILITY per icon (2 = hidden, 0 = the game decides).
+-- eRpgIcons: 0 stamina, 1 stamina core, 2 deadeye, 3 deadeye core, 4 health, 5 health core,
+--            6 horse health, 7 horse health core, 8 horse stamina, 9 horse stamina core, 10 horse courage, 11 horse courage core
+-- _SHOW_PLAYER_CORES alone is not enough: the HUD re-shows them after a death or a resurrect
+local function nativeCores()
+    local h = Config.Layout.hideNativeCores or {}
+    for icon = 0, 5 do N(0xC116E6DF68DCE667, icon, h.player and 2 or 0) end
+    for icon = 6, 11 do N(0xC116E6DF68DCE667, icon, h.horse and 2 or 0) end
+    N(0x50C803A4CD5932C5, not h.player) -- _SHOW_PLAYER_CORES
+    N(0xD4EE21B7CC7FD350, not h.horse)  -- _SHOW_HORSE_CORES
+end
+RegisterNetEvent('lxr-doctor:client:revive', function() Wait(1000) nativeCores() end)
+CreateThread(function()   -- and re-asserted every few seconds: a respawn, a resurrect or a cutscene brings them back
+    while true do Wait(5000) if LocalPlayer.state.isLoggedIn then nativeCores() end end
+end)
+
 -- first paint: locale, layout, settings, brand
 local function init()
-    -- the game's own cores and the horse cores are ours to draw
-    N(0x50C803A4CD5932C5, false) -- _SHOW_PLAYER_CORES
-    N(0xD4EE21B7CC7FD350, false) -- _SHOW_HORSE_CORES
+    nativeCores()
     SendNUIMessage({ action = 'init', locale = Lang.bundle(), lang = Config.Lang, layout = Config.Layout, settings = settings or loadSettings(), brand = LXRCore.Brand, warnAt = Config.Needs.warnAt, help = Config.Help })
     applyRadar()
     last = {}

@@ -49,6 +49,9 @@ Config.Layout = {
     refreshMs  = 250,    -- the client loop; values are only sent to the page when they change
     speedUnit  = 'mph',  -- 'mph' | 'kmh'
     year       = 1899,   -- shown with the game date (match lxr-core Config.Server.year)
+    -- the game's own cores and meters (bottom-left, by the minimap): ours replace them.
+    -- false keeps the game's; the two never agree (its health core is a separate stat from the health bar)
+    hideNativeCores = { player = true, horse = true },
 }
 
 -- player-side settings (persisted per client with KVP; the /hud command opens the panel)
