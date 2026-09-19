@@ -91,6 +91,7 @@ export function App() {
     else if (m.action === 'show') setShown(true);
     else if (m.action === 'hide') setShown(false);
     else if (m.action === 'update') setS((s) => ({ ...s, ...(m.data || {}) }));
+    else if (m.action === 'heading') setS((s) => ({ ...s, heading: m.heading }));
     else if (m.action === 'pulse') { setPulse(m.key); setTimeout(() => setPulse(null), 600); }
     else if (m.action === 'settings') { setOpen(!!m.open); if (m.open) { setDraft({ ...(m.settings || settings) }); setConfirmReset(false); } }
   }), [settings]);

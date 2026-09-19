@@ -89,7 +89,7 @@ local function snapshot()
         health = math.floor(GetEntityHealth(ped) / math.max(1, GetEntityMaxHealth(ped)) * 100 + 0.5),
         stamina = core(ped, 1),
         hunger = need('hunger') or 100, thirst = need('thirst') or 100, cleanliness = need('cleanliness') or 100, stress = need('stress') or 0,
-        heading = math.floor(heading(ped)), place = nearestPlace(pos),
+        place = nearestPlace(pos),   -- the heading has its own fast tick below
         clock = clock(),
         name = pd.charinfo and (pd.charinfo.firstname .. ' ' .. pd.charinfo.lastname) or '',
         job = { label = jobDef and jobDef.label or job.name or '', grade = grade and grade.name or '', onduty = job.onduty },
@@ -116,6 +116,18 @@ local function show(on)
     shown = on
     SendNUIMessage({ action = on and 'show' or 'hide' })
 end
+
+-- the compass: 20 Hz while the frame is up, only when the heading moved (one small message)
+CreateThread(function()
+    local last = -1
+    while true do
+        Wait(shown and 50 or 500)
+        if shown then
+            local h = heading(PlayerPedId())
+            if math.abs(h - last) > 0.3 then last = h SendNUIMessage({ action = 'heading', heading = h }) end
+        end
+    end
+end)
 
 CreateThread(function()
     loadSettings()
