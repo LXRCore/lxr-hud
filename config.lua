@@ -125,11 +125,14 @@ Config.Consumables = {
     },
     anims = {                          -- by the catalog's `use.anim` key
         eat   = { dict = 'mech_inventory@eating@multi_bite@sphere_d8-2_sandwich', anim = 'quick_left_hand', prop = 'p_bread01x' },
-        drink = { dict = 'mech_inventory@drinking@canteen', anim = 'drink_left_hand', prop = 'p_canteen01x' },
-        drink_bottle = { dict = 'mech_inventory@item@_templates@bottle@lid_small_l@unarmed@cork', anim = 'quick_left_hand', prop = 'p_bottlebeer01x' },
+        drink = { dict = 'mech_inventory@drinking@bottle_cylinder_d1-3_h30-5_neck_a13_b2-5', anim = 'chug_a', prop = 'p_bottlebeer01x' },   -- the bottle chug (verified: rsg-consume uses it)
+        drink_bottle = { dict = 'mech_inventory@drinking@bottle_cylinder_d1-3_h30-5_neck_a13_b2-5', anim = 'chug_a', prop = 'p_bottlebeer01x' },
+        eat_canned = { dict = 'mech_inventory@eating@canned_food@cylinder@d8-2_h10-5', anim = 'left_hand', prop = 'p_canfood01x' },
+        -- the canteen: the drinking loop with the canteen in the right hand (rsg-canteen's dict, prop and offsets)
+        canteen = { dict = 'amb_rest_drunk@world_human_drinking@female_a@idle_a', anim = 'idle_a', prop = 'p_cs_canteen_hercule', bone = 'SKEL_R_HAND', offset = { 0.10, 0.09, -0.05, 306.0, 18.0, 0.0 } },
         smoke = { dict = 'mech_inventory@smoking@cigar', anim = 'base', prop = 'p_cigar01x' },
-        heal  = { dict = 'mech_inventory@item@_templates@bottle@lid_small_l@unarmed@cork', anim = 'quick_left_hand', prop = 'p_bottleliquor01x' },
-        inject = { dict = 'mech_inventory@item@_templates@bottle@lid_small_l@unarmed@cork', anim = 'quick_left_hand' },
+        heal  = { dict = 'mech_inventory@drinking@bottle_cylinder_d1-3_h30-5_neck_a13_b2-5', anim = 'chug_a', prop = 'p_bottleliquor01x' },
+        inject = { dict = 'mech_inventory@drinking@bottle_cylinder_d1-3_h30-5_neck_a13_b2-5', anim = 'chug_a' },
     },
     stamina    = { core = true },     -- effects.stamina refills the stamina core on the client
 }

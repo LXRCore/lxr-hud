@@ -190,7 +190,8 @@ RegisterNetEvent('lxr-hud:client:consume', function(c)
         RequestAnimDict(a.dict)
         local t = 0
         while not HasAnimDictLoaded(a.dict) and t < 50 do Wait(10) t = t + 1 end
-        if HasAnimDictLoaded(a.dict) then TaskPlayAnim(ped, a.dict, a.anim, 2.0, 2.0, c.time or Config.Consumables.defaultMs, 31, 0.0, false, false, false) end
+        if HasAnimDictLoaded(a.dict) then TaskPlayAnim(ped, a.dict, a.anim, 8.0, -8.0, -1, 31, 0.0, false, false, false)   -- looped until the bar ends; ClearPedTasks below
+        else print(('^3[lxr-hud]^7 consume: animation dictionary %s did not load'):format(a.dict)) end
     end
     local propName = c.prop and ((Config.Consumables.props or {})[c.prop] or c.prop) or a.prop
     local model = propName and joaat(propName) or nil
@@ -201,7 +202,8 @@ RegisterNetEvent('lxr-hud:client:consume', function(c)
         if HasModelLoaded(model) then
             local pos = GetEntityCoords(ped)
             prop = CreateObject(model, pos.x, pos.y, pos.z, true, true, false)
-            AttachEntityToEntity(prop, ped, GetEntityBoneIndexByName(ped, 'SKEL_L_Hand'), 0.05, 0.0, 0.0, 0.0, 0.0, 0.0, true, true, false, true, 1, true)
+            local o = a.offset or { 0.05, 0.0, 0.0, 0.0, 0.0, 0.0 }   -- per-animation hand and offsets (the canteen sits in the right hand)
+            AttachEntityToEntity(prop, ped, GetEntityBoneIndexByName(ped, a.bone or 'SKEL_L_Hand'), o[1], o[2], o[3], o[4], o[5], o[6], true, true, false, true, 1, true)
         end
     end
     local done = true

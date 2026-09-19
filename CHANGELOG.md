@@ -1,6 +1,7 @@
 # Changelog — lxr-hud
 
 ## 3.0.0 — 2026-09-19
+* Consume animations that exist: the bottle chug (`mech_inventory@drinking@bottle_cylinder…` / `chug_a`, rsg-consume's), canned food, and the canteen with rsg-canteen's drinking loop, prop and right-hand offsets (`bone` / `offset` per animation). The old drink dictionary never loaded, so the ped stood still holding the bottle. A dictionary that fails to load is printed.
 * LXRCore v3 release line: every resource ships as 3.0.0 from here (the entries below are the road to it).
 
 ## 3.1.2 — 2026-09-19
